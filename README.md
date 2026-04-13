@@ -55,16 +55,7 @@ Applyza is an intelligent resume analysis platform that helps job seekers optimi
 
 6. Open [http://localhost:3000](http://localhost:3000).
 
-## Project Structure
 
-```
-├── app/            # Next.js App Router pages and API routes
-├── components/     # React components (ui, layout, resume, analysis, shared)
-├── lib/            # Utility libraries (supabase, openai, hooks, utils)
-├── types/          # TypeScript type definitions
-├── supabase/       # Supabase migrations, edge functions, config
-└── public/         # Static assets
-```
 
 ## License
 
