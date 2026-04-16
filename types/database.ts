@@ -8,7 +8,6 @@ export type Json =
 
 export interface Database {
   public: {
-    PostgrestVersion: "12"
     Tables: {
       profiles: {
         Row: {
@@ -34,6 +33,7 @@ export interface Database {
           avatar_url?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       resumes: {
         Row: {
@@ -78,24 +78,31 @@ export interface Database {
           status?: 'uploaded' | 'parsing' | 'parsed' | 'error'
           updated_at?: string
         }
+        Relationships: []
       }
       analyses: {
         Row: {
           id: string
           resume_id: string
           user_id: string
+          job_id: string | null
           job_title: string | null
           job_description: string | null
           company_name: string | null
+          status: 'pending' | 'processing' | 'completed' | 'error'
           ats_score: number | null
           keyword_score: number | null
           format_score: number | null
           experience_score: number | null
           skills_match: Json | null
-          missing_keywords: string[] | null
+          matched_skills: Json | null
+          missing_keywords: Json | null
           suggestions: Json | null
-          matched_skills: string[] | null
-          status: 'pending' | 'processing' | 'completed' | 'error'
+          strengths: Json | null
+          weaknesses: Json | null
+          summary: string | null
+          result: Json | null
+          error: string | null
           created_at: string
           updated_at: string
         }
@@ -103,36 +110,49 @@ export interface Database {
           id?: string
           resume_id: string
           user_id: string
+          job_id?: string | null
           job_title?: string | null
           job_description?: string | null
           company_name?: string | null
+          status?: 'pending' | 'processing' | 'completed' | 'error'
           ats_score?: number | null
           keyword_score?: number | null
           format_score?: number | null
           experience_score?: number | null
           skills_match?: Json | null
-          missing_keywords?: string[] | null
+          matched_skills?: Json | null
+          missing_keywords?: Json | null
           suggestions?: Json | null
-          matched_skills?: string[] | null
-          status?: 'pending' | 'processing' | 'completed' | 'error'
+          strengths?: Json | null
+          weaknesses?: Json | null
+          summary?: string | null
+          result?: Json | null
+          error?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
+          job_id?: string | null
           job_title?: string | null
           job_description?: string | null
           company_name?: string | null
+          status?: 'pending' | 'processing' | 'completed' | 'error'
           ats_score?: number | null
           keyword_score?: number | null
           format_score?: number | null
           experience_score?: number | null
           skills_match?: Json | null
-          missing_keywords?: string[] | null
+          matched_skills?: Json | null
+          missing_keywords?: Json | null
           suggestions?: Json | null
-          matched_skills?: string[] | null
-          status?: 'pending' | 'processing' | 'completed' | 'error'
+          strengths?: Json | null
+          weaknesses?: Json | null
+          summary?: string | null
+          result?: Json | null
+          error?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       jobs: {
         Row: {
@@ -163,6 +183,7 @@ export interface Database {
           error?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
     }
     Views: {

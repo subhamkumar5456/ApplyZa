@@ -15,9 +15,9 @@ interface ResumeDetailPageProps {
 
 export default async function ResumeDetailPage({ params }: ResumeDetailPageProps) {
   const supabase = createServerSupabaseClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -25,7 +25,7 @@ export default async function ResumeDetailPage({ params }: ResumeDetailPageProps
     .from('resumes')
     .select('*')
     .eq('id', params.id)
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (!resume) {

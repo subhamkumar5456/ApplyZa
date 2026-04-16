@@ -1,7 +1,12 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { Database } from '@/types/database'
 
+/**
+ * Creates a Supabase client scoped to the current user session (anon key).
+ * Uses cookies to read the auth session — suitable for auth checks in Server Components and Route Handlers.
+ */
 export function createServerSupabaseClient() {
   const cookieStore = cookies()
 
@@ -16,14 +21,14 @@ export function createServerSupabaseClient() {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
-          } catch (error) {
+          } catch {
             // Handle cookie setting in read-only contexts
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
+          } catch {
             // Handle cookie removal in read-only contexts
           }
         },
@@ -32,32 +37,26 @@ export function createServerSupabaseClient() {
   )
 }
 
+/**
+ * Creates a Supabase client using the service role key.
+ * Bypasses Row-Level Security — use only in trusted server-side code.
+ * Does NOT require cookies or a user session.
+ */
 export function createServiceRoleClient() {
-  const cookieStore = cookies()
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // Read-only context
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // Read-only context
-          }
-        },
-      },
-    }
-  )
+  if (!url || !key) {
+    throw new Error(
+      '[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables'
+    )
+  }
+
+  return createClient<Database>(url, key, {
+    auth: {
+      // Service role clients should never persist sessions or auto-refresh tokens
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
 }

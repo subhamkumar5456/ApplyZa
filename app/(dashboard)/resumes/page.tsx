@@ -3,13 +3,14 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ResumeList } from '@/components/resume/ResumeList'
+import { ResumeWithAnalysis } from '@/types/resume'
 import { Plus } from 'lucide-react'
 
 export default async function ResumesPage() {
   const supabase = createServerSupabaseClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -34,7 +35,7 @@ export default async function ResumesPage() {
         created_at
       )
     `)
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   return (
@@ -54,7 +55,7 @@ export default async function ResumesPage() {
         </Button>
       </div>
 
-      <ResumeList resumes={resumes || []} />
+      <ResumeList resumes={(resumes || []) as unknown as ResumeWithAnalysis[]} />
     </div>
   )
 }

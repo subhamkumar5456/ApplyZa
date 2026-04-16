@@ -4,9 +4,9 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       .from('jobs')
       .select('*')
       .eq('id', jobId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (error || !job) {

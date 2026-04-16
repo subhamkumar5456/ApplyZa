@@ -117,6 +117,14 @@ export default function AnalyzePage() {
       if (error) throw error
 
       setJobId(job.id)
+
+      // Trigger the AI processor — non-blocking, polling handles the result
+      fetch('/api/jobs/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: job.id }),
+      }).catch((err) => console.error('[Analyze] Failed to trigger processor:', err))
+
       toast({ title: 'Analysis started', description: 'This may take a minute...' })
     } catch (err) {
       toast({

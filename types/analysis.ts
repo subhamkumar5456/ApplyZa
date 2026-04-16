@@ -9,19 +9,14 @@ export interface ATSScore {
 export interface SkillMatch {
   skill: string
   found: boolean
-  context: string
-  importance: 'required' | 'preferred' | 'nice-to-have'
+  importance: 'required' | 'preferred' | 'bonus'
 }
 
 export interface Suggestion {
-  id: string
-  category: 'content' | 'format' | 'keywords' | 'experience' | 'education' | 'skills'
-  severity: 'critical' | 'warning' | 'info'
-  title: string
-  description: string
-  current_text: string
-  suggested_text: string
-  section: string
+  type: 'critical' | 'important' | 'minor'
+  category: string
+  suggestion: string
+  impact: string
 }
 
 export interface AnalysisResult {

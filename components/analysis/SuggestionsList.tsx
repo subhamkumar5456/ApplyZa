@@ -10,7 +10,7 @@ interface SuggestionsListProps {
   suggestions: Suggestion[]
 }
 
-const severityConfig = {
+const typeConfig = {
   critical: {
     icon: AlertCircle,
     color: 'text-red-600',
@@ -18,14 +18,14 @@ const severityConfig = {
     borderColor: 'border-red-200 dark:border-red-800',
     badge: 'destructive' as const,
   },
-  warning: {
+  important: {
     icon: AlertTriangle,
     color: 'text-amber-600',
     bgColor: 'bg-amber-50 dark:bg-amber-950/20',
     borderColor: 'border-amber-200 dark:border-amber-800',
     badge: 'warning' as const,
   },
-  info: {
+  minor: {
     icon: Info,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 dark:bg-blue-950/20',
@@ -34,21 +34,12 @@ const severityConfig = {
   },
 }
 
-const categoryLabels: Record<string, string> = {
-  content: 'Content',
-  format: 'Formatting',
-  keywords: 'Keywords',
-  experience: 'Experience',
-  education: 'Education',
-  skills: 'Skills',
-}
-
 export function SuggestionsList({ suggestions }: SuggestionsListProps) {
-  const criticalSuggestions = suggestions.filter(s => s.severity === 'critical')
-  const warningSuggestions = suggestions.filter(s => s.severity === 'warning')
-  const infoSuggestions = suggestions.filter(s => s.severity === 'info')
+  const criticalSuggestions = suggestions.filter(s => s.type === 'critical')
+  const importantSuggestions = suggestions.filter(s => s.type === 'important')
+  const minorSuggestions = suggestions.filter(s => s.type === 'minor')
 
-  const sortedSuggestions = [...criticalSuggestions, ...warningSuggestions, ...infoSuggestions]
+  const sortedSuggestions = [...criticalSuggestions, ...importantSuggestions, ...minorSuggestions]
 
   return (
     <Card>
@@ -68,13 +59,13 @@ export function SuggestionsList({ suggestions }: SuggestionsListProps) {
             <p className="text-sm text-muted-foreground">No suggestions at this time.</p>
           </div>
         ) : (
-          sortedSuggestions.map((suggestion) => {
-            const config = severityConfig[suggestion.severity]
+          sortedSuggestions.map((suggestion, i) => {
+            const config = typeConfig[suggestion.type] ?? typeConfig.minor
             const Icon = config.icon
 
             return (
               <div
-                key={suggestion.id}
+                key={i}
                 className={cn(
                   'rounded-lg border p-4 transition-all hover:shadow-sm',
                   config.bgColor,
@@ -85,27 +76,18 @@ export function SuggestionsList({ suggestions }: SuggestionsListProps) {
                   <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', config.color)} />
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-semibold text-sm">{suggestion.title}</h4>
+                      <h4 className="font-semibold text-sm">{suggestion.suggestion}</h4>
                       <Badge variant={config.badge} className="text-xs">
-                        {suggestion.severity}
+                        {suggestion.type}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        {categoryLabels[suggestion.category] || suggestion.category}
+                        {suggestion.category}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{suggestion.description}</p>
-
-                    {suggestion.current_text && suggestion.suggested_text && (
-                      <div className="space-y-2 mt-3">
-                        <div className="rounded-md bg-red-100/50 dark:bg-red-900/20 p-2.5 border border-red-200/50 dark:border-red-800/50">
-                          <p className="text-xs font-medium text-red-700 dark:text-red-400 mb-1">Current:</p>
-                          <p className="text-xs text-red-600 dark:text-red-300">{suggestion.current_text}</p>
-                        </div>
-                        <div className="rounded-md bg-emerald-100/50 dark:bg-emerald-900/20 p-2.5 border border-emerald-200/50 dark:border-emerald-800/50">
-                          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">Suggested:</p>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-300">{suggestion.suggested_text}</p>
-                        </div>
-                      </div>
+                    {suggestion.impact && (
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Impact: </span>{suggestion.impact}
+                      </p>
                     )}
                   </div>
                 </div>

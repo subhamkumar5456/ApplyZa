@@ -56,7 +56,6 @@ export function MatchingResults({ skills, matchedSkills, missingKeywords }: Matc
                         {skill.importance}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">{skill.context}</p>
                   </div>
                 </div>
               ))}

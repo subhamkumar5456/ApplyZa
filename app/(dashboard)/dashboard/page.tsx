@@ -7,33 +7,33 @@ import { FileText, Upload, BarChart3, TrendingUp, Sparkles } from 'lucide-react'
 
 export default async function DashboardPage() {
   const supabase = createServerSupabaseClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
   const { data: resumes, error: resumesError } = await supabase
     .from('resumes')
     .select('id, title, status, created_at')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(5)
 
   const { count: totalResumes } = await supabase
     .from('resumes')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
 
   const { count: totalAnalyses } = await supabase
     .from('analyses')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
 
   const { data: latestAnalysisData } = await supabase
     .from('analyses')
     .select('ats_score')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
     .limit(1)
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
   const latestAnalysis = latestAnalysisData as { ats_score: number } | null | undefined;
 
 
-  const userName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'there'
+  const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'there'
 
   return (
     <div className="space-y-8">
