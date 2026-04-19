@@ -31,3 +31,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# env files
+.env.vercel
+.env
+
+# LaTeX / Compilation Artifacts
+*.pdf
+*.tex
+*.aux
+*.out
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
