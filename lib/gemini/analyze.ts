@@ -1,4 +1,4 @@
-import { gemini } from './client'
+import { getGeminiClient, rotateApiKey } from './client'
 import { AnalysisResult } from '@/types/analysis'
 
 const SYSTEM_PROMPT = `You are an expert ATS (Applicant Tracking System) and resume analyst with 15+ years of experience in recruitment and HR. Your task is to analyze how well a candidate's resume matches a specific job description.
@@ -53,17 +53,67 @@ ${resumeText.slice(0, 8000)}
 
 Analyze the resume against the job description and return the JSON analysis.`
 
-  const response = await gemini.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: [
-      { role: 'user', parts: [{ text: SYSTEM_PROMPT + '\n\n' + userPrompt }] },
-    ],
-    config: {
-      temperature: 0.2,
-      maxOutputTokens: 8192,
-      responseMimeType: 'application/json',
+  let response
+  let attempt = 0
+  const maxRetries = 3
+
+  while (attempt < maxRetries) {
+    try {
+      response = await getGeminiClient().models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          { role: 'user', parts: [{ text: SYSTEM_PROMPT + '\n\n' + userPrompt }] },
+        ],
+        config: {
+          temperature: 0.2,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+        }
+      })
+      break // Success, exit loop
+    } catch (err: any) {
+      attempt++
+      const errMsg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err))
+
+      const isQuotaExceeded =
+        err?.status === 429 ||
+        errMsg.includes('429') ||
+        errMsg.includes('RESOURCE_EXHAUSTED') ||
+        errMsg.includes('quota')
+
+      if (isQuotaExceeded) {
+        // Try rotating to the next API key before giving up
+        const rotated = rotateApiKey()
+        if (rotated) {
+          console.warn(`[Gemini] Quota exceeded — retrying with next API key (attempt ${attempt}/${maxRetries})…`)
+          continue
+        }
+        // All keys exhausted
+        throw new Error(
+          'AI quota exceeded. All API keys have reached their free-tier daily limit. Please try again tomorrow or upgrade your Gemini API plan.',
+        )
+      }
+
+      const isOverloaded = errMsg.includes('503') || errMsg.includes('UNAVAILABLE') || errMsg.includes('high demand')
+
+      if (isOverloaded && attempt < maxRetries) {
+        console.warn(`[Gemini] Model overloaded. Retrying attempt ${attempt}/${maxRetries} in ${attempt * 3}s...`)
+        await new Promise(resolve => setTimeout(resolve, attempt * 3000))
+        continue
+      }
+
+      // If we hit max retries or it's a different error
+      if (isOverloaded) {
+        throw new Error('The AI model is currently experiencing extremely high demand. We retried multiple times but could not get through. Please try again in a few minutes.')
+      }
+
+      throw err // Let standard error propagate
     }
-  })
+  }
+
+  if (!response) {
+    throw new Error('Failed to get a valid response from Gemini after multiple attempts.')
+  }
 
   const content = response.text
   if (!content) {

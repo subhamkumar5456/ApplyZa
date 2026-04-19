@@ -154,6 +154,37 @@ export interface Database {
         }
         Relationships: []
       }
+      resume_versions: {
+        Row: {
+          id: string
+          user_id: string
+          resume_id: string
+          analysis_id: string | null
+          version_type: 'original' | 'refined' | 'manual'
+          latex_content: string
+          modifications: Json
+          version_label: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          resume_id: string
+          analysis_id?: string | null
+          version_type: 'original' | 'refined' | 'manual'
+          latex_content: string
+          modifications?: Json
+          version_label?: string | null
+          created_at?: string
+        }
+        Update: {
+          version_type?: 'original' | 'refined' | 'manual'
+          latex_content?: string
+          modifications?: Json
+          version_label?: string | null
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           id: string

@@ -18,6 +18,21 @@ const config: Config = {
     },
     extend: {
       colors: {
+        brand: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#0066FF', // Professional Blue - Primary
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#1e293b', // Modern Dark Neutral Base
+          cyan: '#00D4FF',
+          accent: '#10B981', // Success Green
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Upload, BarChart3, TrendingUp, Sparkles } from 'lucide-react'
+import { ResumeActions } from '@/components/resume/ResumeActions'
 
 export default async function DashboardPage() {
   const supabase = createServerSupabaseClient()
@@ -133,28 +134,32 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {resumes.map((resume: any) => (
-                <Link
+                <div
                   key={resume.id}
-                  href={`/resumes/${resume.id}`}
-                  className="flex items-center gap-4 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                  className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                    <FileText className="h-5 w-5 text-violet-600" />
+                  <Link href={`/resumes/${resume.id}`} className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                      <FileText className="h-5 w-5 text-violet-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{resume.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(resume.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </Link>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      resume.status === 'parsed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                      resume.status === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {resume.status}
+                    </span>
+                    <ResumeActions resumeId={resume.id} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{resume.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(resume.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    resume.status === 'parsed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                    resume.status === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                  }`}>
-                    {resume.status}
-                  </span>
-                </Link>
+                </div>
               ))}
             </div>
           )}

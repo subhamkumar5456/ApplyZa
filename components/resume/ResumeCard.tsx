@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { FileText, BarChart3, Eye, Trash2 } from 'lucide-react'
+import { ResumeActions } from '@/components/resume/ResumeActions'
 
 interface ResumeCardProps {
   resume: ResumeWithAnalysis
@@ -29,7 +30,10 @@ export function ResumeCard({ resume }: ResumeCardProps) {
               <p className="text-xs text-muted-foreground mt-0.5">{timeAgo}</p>
             </div>
           </div>
-          <StatusBadge status={resume.status} />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={resume.status} />
+            <ResumeActions resumeId={resume.id} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pb-3">

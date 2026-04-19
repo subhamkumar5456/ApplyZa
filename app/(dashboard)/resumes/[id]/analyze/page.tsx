@@ -13,11 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ATSScoreCard } from '@/components/analysis/ATSScoreCard'
 import { MatchingResults } from '@/components/analysis/MatchingResults'
 import { SuggestionsList } from '@/components/analysis/SuggestionsList'
+import { OptimizedResumeTab } from '@/components/refiner/OptimizedResumeTab'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useToast } from '@/lib/hooks/use-toast'
 import { useJobStatus } from '@/lib/hooks/use-job-status'
 import { AnalysisResult } from '@/types/analysis'
-import { ArrowLeft, Loader2, Sparkles, BarChart3, Target, Lightbulb } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles, BarChart3, Target, Lightbulb, Wand2 } from 'lucide-react'
 
 export default function AnalyzePage() {
   const [jobTitle, setJobTitle] = useState('')
@@ -26,6 +27,7 @@ export default function AnalyzePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null)
   const [existingAnalyses, setExistingAnalyses] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
@@ -38,6 +40,8 @@ export default function AnalyzePage() {
     jobId,
     onComplete: (result) => {
       setAnalysisResult(result.result as AnalysisResult)
+      // Track the analysis record id for the Refiner module
+      if (result.id) setActiveAnalysisId(result.id)
       setJobId(null)
       toast({ title: 'Analysis complete!' })
     },
@@ -235,7 +239,7 @@ export default function AnalyzePage() {
 
       {analysisResult && (
         <Tabs defaultValue="score" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="score" className="gap-1">
               <BarChart3 className="h-3 w-3" />
               ATS Score
@@ -247,6 +251,11 @@ export default function AnalyzePage() {
             <TabsTrigger value="suggestions" className="gap-1">
               <Lightbulb className="h-3 w-3" />
               Suggestions
+            </TabsTrigger>
+            <TabsTrigger value="optimized" className="gap-1">
+              <Wand2 className="h-3 w-3" />
+              <span className="hidden sm:inline">Optimized</span>
+              <span className="sm:hidden">AI</span>
             </TabsTrigger>
           </TabsList>
 
@@ -299,6 +308,17 @@ export default function AnalyzePage() {
           <TabsContent value="suggestions" className="mt-4">
             <SuggestionsList suggestions={analysisResult.suggestions} />
           </TabsContent>
+
+          <TabsContent value="optimized" className="mt-4">
+            <OptimizedResumeTab
+              resumeId={resumeId}
+              analysisId={activeAnalysisId}
+              analysisResult={analysisResult}
+              jobDescription={jobDescription}
+              jobTitle={jobTitle}
+              companyName={companyName}
+            />
+          </TabsContent>
         </Tabs>
       )}
 
@@ -312,22 +332,29 @@ export default function AnalyzePage() {
               {existingAnalyses.map((analysis) => (
                 <button
                   key={analysis.id}
-                  onClick={() => setAnalysisResult({
-                    ats_score: {
-                      overall: analysis.ats_score || 0,
-                      keyword_match: analysis.keyword_score || 0,
-                      format_score: analysis.format_score || 0,
-                      experience_relevance: analysis.experience_score || 0,
-                      education_match: 0,
-                    },
-                    skills_match: analysis.skills_match || [],
-                    matched_skills: analysis.matched_skills || [],
-                    missing_keywords: analysis.missing_keywords || [],
-                    suggestions: analysis.suggestions || [],
-                    summary: '',
-                    strengths: [],
-                    weaknesses: [],
-                  })}
+                  onClick={() => {
+                    setAnalysisResult({
+                      ats_score: {
+                        overall: analysis.ats_score || 0,
+                        keyword_match: analysis.keyword_score || 0,
+                        format_score: analysis.format_score || 0,
+                        experience_relevance: analysis.experience_score || 0,
+                        education_match: 0,
+                      },
+                      skills_match: analysis.skills_match || [],
+                      matched_skills: analysis.matched_skills || [],
+                      missing_keywords: analysis.missing_keywords || [],
+                      suggestions: analysis.suggestions || [],
+                      summary: analysis.summary || '',
+                      strengths: analysis.strengths || [],
+                      weaknesses: analysis.weaknesses || [],
+                    })
+                    // Restore context for the Refiner module
+                    setActiveAnalysisId(analysis.id)
+                    setJobDescription(analysis.job_description || '')
+                    setJobTitle(analysis.job_title || '')
+                    setCompanyName(analysis.company_name || '')
+                  }}
                   className="w-full flex items-center gap-4 rounded-lg border p-3 transition-colors hover:bg-muted/50 text-left"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/30">

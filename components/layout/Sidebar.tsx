@@ -10,6 +10,7 @@ import {
   Settings,
   Upload,
   Sparkles,
+  Code,
 } from 'lucide-react'
 
 const sidebarLinks = [
@@ -27,6 +28,11 @@ const sidebarLinks = [
     title: 'Upload New',
     href: '/resumes/new',
     icon: Upload,
+  },
+  {
+    title: 'LaTeX Compiler',
+    href: '/latex-compiler',
+    icon: Code,
   },
   {
     title: 'Settings',
