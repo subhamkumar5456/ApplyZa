@@ -28,10 +28,16 @@ function LoginForm() {
 
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      console.log('Attempting login with:', { email: email.trim().toLowerCase(), password: '***' })
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.log('Anon Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
         password,
       })
+      
+      console.log('Login response:', { data, error })
 
       if (error) {
         toast({
