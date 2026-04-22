@@ -182,6 +182,10 @@ export function OptimizedResumeTab({
         const token = await getToken()
         if (!token) throw new Error('Not authenticated')
 
+        const safeCompany = companyName ? companyName.replace(/[^a-zA-Z0-9-]/g, '-') : ''
+        const safeJob = jobTitle ? jobTitle.replace(/[^a-zA-Z0-9-]/g, '-') : 'resume'
+        const filename = [safeCompany, safeJob].filter(Boolean).join('_') + '_Resume.pdf'
+
         console.log('Sending LaTeX:', cleanedLatex)
         const res = await fetch('/api/compile-latex', {
           method: 'POST',
@@ -189,7 +193,7 @@ export function OptimizedResumeTab({
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ latexContent: cleanedLatex }),
+          body: JSON.stringify({ latexContent: cleanedLatex, filename }),
         })
 
         if (!res.ok) {
@@ -218,9 +222,13 @@ export function OptimizedResumeTab({
       toast({ title: 'No PDF to download', description: 'Compile first to generate a PDF.', variant: 'destructive' })
       return
     }
+    const safeCompany = companyName ? companyName.replace(/[^a-zA-Z0-9-]/g, '-') : ''
+    const safeJob = jobTitle ? jobTitle.replace(/[^a-zA-Z0-9-]/g, '-') : 'resume'
+    const filename = [safeCompany, safeJob].filter(Boolean).join('_') + '_Resume.pdf'
+
     const a = document.createElement('a')
     a.href = pdfUrl
-    a.download = `${jobTitle.replace(/\s+/g, '-')}-optimized-resume.pdf`
+    a.download = filename
     a.click()
   }
 

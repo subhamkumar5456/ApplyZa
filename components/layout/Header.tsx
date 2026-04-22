@@ -10,9 +10,14 @@ import {
   Settings,
   Sparkles,
   User,
+  Menu,
 } from 'lucide-react'
 
-export function Header() {
+interface HeaderProps {
+  onToggleSidebar?: () => void
+}
+
+export function Header({ onToggleSidebar }: HeaderProps) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -25,12 +30,18 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 md:gap-6">
+          {onToggleSidebar && (
+            <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="shrink-0">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Sidebar</span>
+            </Button>
+          )}
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent hidden sm:inline-block">
               Applyza
             </span>
           </Link>
