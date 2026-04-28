@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       updated_at: job.updated_at,
     })
   } catch (error) {
-    console.error('Job status error:', error)
+    logger.error('jobs/status', 'Job status error', error)
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,17 +1,18 @@
-import nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer'
+import { env } from '@/lib/env';
 
 // Validate env variables
-if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+if (!env.SMTP_USER || !env.SMTP_PASS) {
   throw new Error('Missing SMTP_USER or SMTP_PASS in environment variables');
 }
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT) || 465,
+  host: env.SMTP_HOST || 'smtp.gmail.com',
+  port: env.SMTP_PORT || 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
   },
 });
 
@@ -34,7 +35,7 @@ export interface EmailOptions {
 export async function sendEmail({ to, subject, html, text }: EmailOptions) {
   try {
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      from: env.SMTP_FROM || env.SMTP_USER,
       to,
       subject,
       html,

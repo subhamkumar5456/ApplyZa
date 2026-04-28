@@ -15,41 +15,40 @@ import { MatchingResults } from '@/components/analysis/MatchingResults'
 import { SuggestionsList } from '@/components/analysis/SuggestionsList'
 import { OptimizedResumeTab } from '@/components/refiner/OptimizedResumeTab'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { AnalysisSkeleton } from '@/components/skeletons/analysis-skeleton'
+import { WorkflowStepper } from '@/components/workflow-stepper'
 import { useToast } from '@/lib/hooks/use-toast'
-import { useJobStatus } from '@/lib/hooks/use-job-status'
+import { useResumeAnalysis } from '@/lib/hooks/use-resume-analysis'
 import { AnalysisResult } from '@/types/analysis'
 import { ArrowLeft, Loader2, Sparkles, BarChart3, Target, Lightbulb, Wand2 } from 'lucide-react'
 
 export default function AnalyzePage() {
+  const router = useRouter()
+  const params = useParams()
+  const resumeId = params.id as string
+  const supabase = createClient()
+  const { toast } = useToast()
+  
+  const [activeTab, setActiveTab] = useState('score')
   const [jobTitle, setJobTitle] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [jobDescription, setJobDescription] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
-  const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null)
   const [existingAnalyses, setExistingAnalyses] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
-  const params = useParams()
-  const { toast } = useToast()
-  const supabase = createClient()
-  const resumeId = params.id as string
 
-  const { status: jobStatus } = useJobStatus({
-    jobId,
-    onComplete: (result) => {
-      setAnalysisResult(result.result as AnalysisResult)
-      // Track the analysis record id for the Refiner module
-      if (result.id) setActiveAnalysisId(result.id)
-      setJobId(null)
-      toast({ title: 'Analysis complete!' })
-    },
-    onError: (error) => {
-      toast({ title: 'Analysis failed', description: error, variant: 'destructive' })
-      setJobId(null)
-    },
-  })
+  const {
+    status: analysisStatus,
+    result: analysisResult,
+    error: analysisError,
+    analysisId: activeAnalysisId,
+    analyze,
+    reset,
+    setResult: setAnalysisResult,
+    setAnalysisId: setActiveAnalysisId,
+    setStatus: setAnalysisStatus,
+  } = useResumeAnalysis()
+
+  // Set existing analyses if any (still loaded on mount)
 
   useEffect(() => {
     async function loadData() {
@@ -95,40 +94,8 @@ export default function AnalyzePage() {
       return
     }
 
-    setIsSubmitting(true)
-    setAnalysisResult(null)
-
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Unauthorized')
-
-      const { data: job, error } = await supabase
-        .from('jobs')
-        .insert({
-          user_id: session.user.id,
-          type: 'analyze_match',
-          status: 'pending',
-          payload: {
-            resume_id: resumeId,
-            job_title: jobTitle,
-            job_description: jobDescription,
-            company_name: companyName,
-          },
-        })
-        .select('id')
-        .single()
-
-      if (error) throw error
-
-      setJobId(job.id)
-
-      // Trigger the AI processor — non-blocking, polling handles the result
-      fetch('/api/jobs/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: job.id }),
-      }).catch((err) => console.error('[Analyze] Failed to trigger processor:', err))
-
+      await analyze(resumeId, jobDescription, jobTitle, companyName);
       toast({ title: 'Analysis started', description: 'This may take a minute...' })
     } catch (err) {
       toast({
@@ -136,10 +103,17 @@ export default function AnalyzePage() {
         description: err instanceof Error ? err.message : 'Please try again.',
         variant: 'destructive',
       })
-    } finally {
-      setIsSubmitting(false)
     }
   }
+
+  // Handle analysis completion toast
+  useEffect(() => {
+    if (analysisStatus === 'complete') {
+      toast({ title: 'Analysis complete!' })
+    } else if (analysisStatus === 'error' && analysisError) {
+      toast({ title: 'Analysis failed', description: analysisError, variant: 'destructive' })
+    }
+  }, [analysisStatus, analysisError, toast])
 
   if (isLoading) {
     return (
@@ -155,6 +129,7 @@ export default function AnalyzePage() {
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/resumes/${resumeId}`}>
             <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back to Resume</span>
           </Link>
         </Button>
         <div>
@@ -165,7 +140,12 @@ export default function AnalyzePage() {
         </div>
       </div>
 
-      {!analysisResult && !jobId && (
+      <WorkflowStepper 
+        currentStep={!analysisResult ? 'analyze' : activeTab === 'optimized' ? 'refine' : 'analyze'} 
+        resumeId={resumeId}
+      />
+
+      {!analysisResult && analysisStatus !== 'analyzing' && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -185,7 +165,7 @@ export default function AnalyzePage() {
                   placeholder="e.g., Senior Software Engineer"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
-                  disabled={isSubmitting}
+                  disabled={analysisStatus !== 'idle'}
                 />
               </div>
               <div className="space-y-2">
@@ -195,7 +175,7 @@ export default function AnalyzePage() {
                   placeholder="e.g., Google"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  disabled={isSubmitting}
+                  disabled={analysisStatus !== 'idle'}
                 />
               </div>
             </div>
@@ -206,18 +186,18 @@ export default function AnalyzePage() {
                 placeholder="Paste the full job description here..."
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                disabled={isSubmitting}
+                disabled={analysisStatus !== 'idle'}
                 className="min-h-[200px]"
               />
             </div>
             <Button
               onClick={handleAnalyze}
-              disabled={isSubmitting || !jobTitle || !companyName || !jobDescription}
+              disabled={analysisStatus !== 'idle' || !jobTitle || !companyName || !jobDescription}
               className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
               size="lg"
             >
-              {isSubmitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting Analysis...</>
+              {analysisStatus !== 'idle' ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
               ) : (
                 <><Sparkles className="mr-2 h-4 w-4" /> Analyze Match</>
               )}
@@ -226,19 +206,20 @@ export default function AnalyzePage() {
         </Card>
       )}
 
-      {jobId && !analysisResult && (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <LoadingSpinner size="lg" text="Analyzing your resume... This may take up to a minute." />
-            <p className="text-xs text-muted-foreground mt-4">
-              Status: {jobStatus?.status || 'starting'}
-            </p>
-          </CardContent>
-        </Card>
+      {analysisStatus === 'analyzing' && !analysisResult && (
+        <div className="py-8">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <LoadingSpinner size="sm" />
+            <span className="text-sm text-muted-foreground">
+              Analyzing your resume... This may take up to a minute.
+            </span>
+          </div>
+          <AnalysisSkeleton />
+        </div>
       )}
 
       {analysisResult && (
-        <Tabs defaultValue="score" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="score" className="gap-1">
               <BarChart3 className="h-3 w-3" />
@@ -322,7 +303,7 @@ export default function AnalyzePage() {
         </Tabs>
       )}
 
-      {existingAnalyses.length > 0 && !analysisResult && !jobId && (
+      {existingAnalyses.length > 0 && !analysisResult && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Previous Analyses</CardTitle>
@@ -351,6 +332,7 @@ export default function AnalyzePage() {
                     })
                     // Restore context for the Refiner module
                     setActiveAnalysisId(analysis.id)
+                    setAnalysisStatus('complete')
                     setJobDescription(analysis.job_description || '')
                     setJobTitle(analysis.job_title || '')
                     setCompanyName(analysis.company_name || '')

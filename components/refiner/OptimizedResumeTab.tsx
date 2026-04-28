@@ -24,6 +24,12 @@ import {
 
 import { cleanLatexContent } from '@/lib/latex-utils'
 import { cn } from '@/lib/utils'
+import { EditorSkeleton } from '@/components/skeletons/editor-skeleton'
+import { useLatexCompiler } from '@/lib/hooks/use-latex-compiler'
+import { useResumeRefiner } from '@/lib/hooks/use-resume-refiner'
+import { useEditorShortcuts } from '@/lib/hooks/use-editor-shortcuts'
+import { EditorShortcutHints } from '@/components/editor-shortcut-hints'
+import { env } from '@/lib/env'
 
 interface OptimizedResumeTabProps {
   resumeId: string
@@ -45,21 +51,33 @@ export function OptimizedResumeTab({
   const { toast } = useToast()
   const supabase = createClient()
 
-  // ── State ───────────────────────────────────────────────────
-  const [generationState, setGenerationState] = useState<GenerationState>('idle')
-  const [compileState, setCompileState] = useState<CompileState>('idle')
-  const [latexContent, setLatexContent] = useState('')
-  const [modifications, setModifications] = useState<string[]>([])
+  // ── Custom Hooks ────────────────────────────────────────────
+  const { 
+    state: compileState, 
+    pdfUrl, 
+    compilationError, 
+    compile, 
+    download, 
+    setPdfUrl,
+    setState: setCompileState
+  } = useLatexCompiler()
+
+  const {
+    status: refinerStatus,
+    latexCode,
+    setLatexCode: setLatexContent,
+    modifications,
+    error: refinerError,
+    refine,
+    setModifications,
+    setStatus: setRefinerStatus,
+  } = useResumeRefiner()
+
+  // ── Component State ─────────────────────────────────────────
   const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [compileError, setCompileError] = useState<string | null>(null)
-  const [generationError, setGenerationError] = useState<string | null>(null)
   const [versions, setVersions] = useState<ResumeVersion[]>([])
   const [versionsLoading, setVersionsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-
-  // Compile debounce ref (prevents rapid recompile button hits)
-  const compileTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // ── Helpers: get bearer token ───────────────────────────────
   const getToken = useCallback(async () => {
@@ -105,136 +123,38 @@ export function OptimizedResumeTab({
       return
     }
 
-    setGenerationState('generating')
-    setGenerationError(null)
-
     try {
-      const token = await getToken()
-      if (!token) throw new Error('Not authenticated')
-
-      const res = await fetch('/api/resume/refine', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          resumeId,
-          analysisId,
-          jobDescription,
-          missingKeywords: analysisResult?.missing_keywords ?? [],
-          jobTitle,
-          companyName: companyName ?? '',
-        }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error ?? 'Failed to generate optimized resume')
-      }
-
-      setLatexContent(data.refinedLatex)
-      setModifications(data.modifications ?? [])
-      setCurrentVersionId(data.versionId)
-      setGenerationState('ready')
-
+      const data = await refine(
+        resumeId,
+        analysisId,
+        jobDescription,
+        jobTitle,
+        companyName,
+        analysisResult?.missing_keywords ?? []
+      );
+      
+      setCurrentVersionId(data.versionId);
+      
       if (data.cached) {
         toast({ title: 'Loaded cached version', description: 'Using your previously generated resume.' })
       } else {
         toast({ title: '✨ Resume optimized!', description: 'Edit the LaTeX and compile to preview your PDF.' })
       }
 
-      // Reload version list
       await loadVersions()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      setGenerationError(msg)
-      setGenerationState('error')
-      toast({ title: 'Generation failed', description: msg, variant: 'destructive' })
+      toast({ title: 'Generation failed', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' })
     }
   }
 
-  async function handleCompile() {
-    if (!latexContent.trim()) {
-      toast({ title: 'No LaTeX content', description: 'Generate or enter LaTeX first.', variant: 'destructive' })
-      return
-    }
-
-    const cleanedLatex = cleanLatexContent(latexContent)
-    
-    if (!cleanedLatex.includes('\\documentclass')) {
-      toast({ title: 'Invalid LaTeX', description: 'Missing \\documentclass command.', variant: 'destructive' })
-      return
-    }
-
-    // Debounce rapid consecutive clicks
-    if (compileTimerRef.current) clearTimeout(compileTimerRef.current)
-    compileTimerRef.current = setTimeout(async () => {
-      setCompileState('compiling')
-      setCompileError(null)
-
-      // Revoke old blob URL to prevent memory leak
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-      setPdfUrl(null)
-
-      try {
-        const token = await getToken()
-        if (!token) throw new Error('Not authenticated')
-
-        const safeCompany = companyName ? companyName.replace(/[^a-zA-Z0-9-]/g, '-') : ''
-        const safeJob = jobTitle ? jobTitle.replace(/[^a-zA-Z0-9-]/g, '-') : 'resume'
-        const filename = [safeCompany, safeJob].filter(Boolean).join('_') + '_Resume.pdf'
-
-        console.log('Sending LaTeX:', cleanedLatex)
-        const res = await fetch('/api/compile-latex', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ latexContent: cleanedLatex, filename }),
-        })
-
-        if (!res.ok) {
-          const json = await res.json().catch(() => ({}))
-          console.error('LaTeX Compilation Error:', json)
-          throw new Error(json.details ? `${json.error}\n\nDetails: ${json.details}` : (json.error ?? 'Compilation failed'))
-        }
-
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        setPdfUrl(url)
-        setCompileState('ready')
-        toast({ title: 'Compiled successfully!', description: 'Your PDF is ready to preview.' })
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Compilation failed'
-        setCompileError(msg)
-        setCompileState('error')
-        toast({ title: 'Compilation failed', description: msg, variant: 'destructive' })
-      }
-    }, 300)
-  }
+  const handleCompile = () => compile(latexCode, jobTitle ? `${jobTitle}_Resume.pdf` : 'Resume.pdf');
 
   // ── Download PDF ────────────────────────────────────────────
-  function handleDownload() {
-    if (!pdfUrl) {
-      toast({ title: 'No PDF to download', description: 'Compile first to generate a PDF.', variant: 'destructive' })
-      return
-    }
-    const safeCompany = companyName ? companyName.replace(/[^a-zA-Z0-9-]/g, '-') : ''
-    const safeJob = jobTitle ? jobTitle.replace(/[^a-zA-Z0-9-]/g, '-') : 'resume'
-    const filename = [safeCompany, safeJob].filter(Boolean).join('_') + '_Resume.pdf'
-
-    const a = document.createElement('a')
-    a.href = pdfUrl
-    a.download = filename
-    a.click()
-  }
+  const handleDownload = () => download(jobTitle ? `${jobTitle}_Resume.pdf` : 'Resume.pdf');
 
   // ── Save version manually ───────────────────────────────────
   async function handleSaveVersion() {
-    if (!latexContent.trim()) {
+    if (!latexCode.trim()) {
       toast({ title: 'Nothing to save', variant: 'destructive' })
       return
     }
@@ -252,7 +172,7 @@ export function OptimizedResumeTab({
         body: JSON.stringify({
           resumeId,
           analysisId,
-          latexContent,
+          latexContent: latexCode,
           versionLabel: `Manual edit — ${new Date().toLocaleString()}`,
         }),
       })
@@ -273,6 +193,18 @@ export function OptimizedResumeTab({
       setIsSaving(false)
     }
   }
+
+  useEditorShortcuts({
+    onSave: () => {
+      if (!isSaving && refinerStatus === 'complete') handleSaveVersion()
+    },
+    onCompile: () => {
+      if (compileState !== 'compiling' && refinerStatus === 'complete') handleCompile()
+    },
+    onDownload: () => {
+      if (pdfUrl && refinerStatus === 'complete') handleDownload()
+    }
+  })
 
   // ── Load a version from history ─────────────────────────────
   function handleLoadVersion(version: ResumeVersion) {
@@ -295,7 +227,7 @@ export function OptimizedResumeTab({
   }, [])
 
   // ── Guard: analysis not done ────────────────────────────────
-  const featureEnabled = process.env.NEXT_PUBLIC_ENABLE_RESUME_REFINER === 'true'
+  const featureEnabled = env.NEXT_PUBLIC_ENABLE_RESUME_REFINER === 'true'
 
   if (!featureEnabled) {
     return (
@@ -316,11 +248,11 @@ export function OptimizedResumeTab({
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-slate-200">AI Resume Optimizer</h3>
           <p className="text-xs text-slate-500">
-            {generationState === 'idle'
+            {refinerStatus === 'idle'
               ? 'Generate an ATS-optimized LaTeX resume tailored to this job'
-              : generationState === 'generating'
+              : refinerStatus === 'refining'
               ? 'Generating your optimized resume…'
-              : generationState === 'ready'
+              : refinerStatus === 'complete'
               ? 'Edit, recompile, and download your optimized PDF resume'
               : 'Generation failed — please try again'}
           </p>
@@ -328,18 +260,18 @@ export function OptimizedResumeTab({
 
         <Button
           onClick={handleGenerate}
-          disabled={generationState === 'generating' || !analysisId}
+          disabled={refinerStatus === 'refining' || !analysisId}
           size="sm"
           className={cn(
             'gap-2 font-semibold',
-            generationState === 'ready'
+            refinerStatus === 'complete'
               ? 'bg-slate-700 hover:bg-slate-600 text-slate-200'
               : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-900/30',
           )}
         >
-          {generationState === 'generating' ? (
+          {refinerStatus === 'refining' ? (
             <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…</>
-          ) : generationState === 'ready' ? (
+          ) : refinerStatus === 'complete' ? (
             <><RotateCcw className="h-3.5 w-3.5" /> Regenerate</>
           ) : (
             <><Wand2 className="h-3.5 w-3.5" /> Generate Optimized Resume</>
@@ -347,55 +279,47 @@ export function OptimizedResumeTab({
         </Button>
       </div>
 
-      {/* ── Generation loading card ─────────────────────────── */}
-      {generationState === 'generating' && (
-        <Card className="border-violet-800/30 bg-violet-950/10">
-          <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
-            <div className="relative">
-              <div className="h-14 w-14 rounded-full border-2 border-violet-800/30" />
-              <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-violet-500" />
-              <Wand2 className="absolute inset-0 m-auto h-6 w-6 text-violet-400" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-violet-300">AI is refining your resume…</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Analyzing keywords, strengthening phrases, and optimizing for ATS. This takes 15–30 seconds.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* ── Generation loading skeleton ─────────────────────────── */}
+      {refinerStatus === 'refining' && (
+        <div className="space-y-4" aria-live="polite" aria-busy="true">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-violet-400" aria-hidden="true" />
+            <p className="text-sm font-semibold text-violet-300">AI is refining your resume…</p>
+          </div>
+          <EditorSkeleton />
+        </div>
       )}
 
       {/* ── Error card ──────────────────────────────────────── */}
-      {generationState === 'error' && generationError && (
-        <Card className="border-red-900/30 bg-red-950/10">
+      {refinerStatus === 'error' && refinerError && (
+        <Card className="border-red-900/30 bg-red-950/10" aria-live="assertive">
           <CardContent className="flex items-start gap-3 py-4">
-            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" />
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" aria-hidden="true" />
             <div>
               <p className="text-sm font-medium text-red-400">Generation failed</p>
-              <p className="mt-0.5 text-xs text-slate-500">{generationError}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{refinerError}</p>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* ── Main editor + preview split ─────────────────────── */}
-      {generationState === 'ready' && (
-        <div className="space-y-4">
+      {refinerStatus === 'complete' && (
+        <section className="space-y-4" aria-label="Optimized Resume Editor">
           {/* Modifications summary */}
           <ModificationsList modifications={modifications} />
 
           {/* Split view */}
           <div className="grid gap-4 lg:grid-cols-2">
             <LaTeXEditor
-              value={latexContent}
+              value={latexCode}
               onChange={setLatexContent}
               className="min-h-[620px]"
             />
             <PDFPreview
               pdfUrl={pdfUrl}
               compileState={compileState}
-              compileError={compileError}
+              compileError={compilationError}
               className="min-h-[620px]"
             />
           </div>
@@ -440,6 +364,10 @@ export function OptimizedResumeTab({
               )}
             </Button>
 
+            <div className="hidden lg:block">
+              <EditorShortcutHints />
+            </div>
+
             <p className="ml-auto text-xs text-slate-600">
               {versions.length > 0 ? `${versions.length} saved version${versions.length !== 1 ? 's' : ''}` : ''}
             </p>
@@ -452,11 +380,11 @@ export function OptimizedResumeTab({
             onLoad={handleLoadVersion}
             isLoading={versionsLoading}
           />
-        </div>
+        </section>
       )}
 
       {/* ── No analysis warning ──────────────────────────────── */}
-      {!analysisId && generationState === 'idle' && (
+      {!analysisId && refinerStatus === 'idle' && (
         <Card className="border-amber-900/30 bg-amber-950/10">
           <CardContent className="flex items-start gap-3 py-4">
             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />

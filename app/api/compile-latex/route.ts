@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sanitizeLatex, MAX_LATEX_LENGTH } from '@/lib/utils/latex-sanitizer'
+import { sanitizeLatex } from '@/lib/sanitize-latex'
+import { CompilationError, RateLimitError } from '@/lib/errors'
+import { rateLimit } from '@/lib/rate-limit'
+import { withAuth } from '@/lib/auth-guard'
+import { env } from '@/lib/env'
+import { logger } from '@/lib/logger'
 
 // ============================================================
 // POST /api/compile-latex
@@ -10,13 +15,28 @@ import { sanitizeLatex, MAX_LATEX_LENGTH } from '@/lib/utils/latex-sanitizer'
 export const maxDuration = 30
 
 // LaTeX compilation endpoints
-const LATEX_API_URL =
-  process.env.LATEX_COMPILE_API_URL ?? 'https://texlive.net/cgi-bin/latexcgi'
+const LATEX_API_URL = env.LATEX_COMPILE_API_URL ?? 'https://texlive.net/cgi-bin/latexcgi'
 
-export async function POST(req: NextRequest) {
+const limiter = rateLimit({ uniqueTokenPerInterval: 500, interval: 60000 })
+
+export const POST = withAuth(async (req: NextRequest, userId: string) => {
   // ── Feature flag guard ──────────────────────────────────────
-  if (process.env.ENABLE_RESUME_REFINER !== 'true') {
+  if (env.ENABLE_RESUME_REFINER !== 'true') {
     return NextResponse.json({ error: 'Feature not available' }, { status: 403 })
+  }
+
+  // ── Rate Limiting (10 requests/minute per IP) ─────────────────
+  const ip = req.headers.get('x-forwarded-for') || 'anonymous'
+  try {
+    await limiter.check(10, ip)
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json(
+        { error: error.message, retryAfter: 60 },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      )
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 
   // ── Parse body ──────────────────────────────────────────────
@@ -33,20 +53,18 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Security: sanitise before compilation ──────────────────
-  const sanitizeResult = sanitizeLatex(latexContent)
-  if (!sanitizeResult.safe) {
-    console.warn('[compile-latex] Rejected unsafe input:', sanitizeResult.reason)
-    return NextResponse.json(
-      { error: `Invalid LaTeX content: ${sanitizeResult.reason}` },
-      { status: 422 },
-    )
-  }
-
-  if (latexContent.length > MAX_LATEX_LENGTH) {
-    return NextResponse.json(
-      { error: `LaTeX content exceeds maximum length of ${MAX_LATEX_LENGTH} characters` },
-      { status: 413 },
-    )
+  let safeLatex = ''
+  try {
+    safeLatex = sanitizeLatex(latexContent)
+  } catch (err: any) {
+    if (err instanceof CompilationError) {
+      console.warn('[compile-latex] Rejected unsafe input:', err.message)
+      return NextResponse.json(
+        { error: `Invalid LaTeX content: ${err.message}` },
+        { status: 422 },
+      )
+    }
+    return NextResponse.json({ error: 'Sanitization error' }, { status: 500 })
   }
 
   // ── Compile via cloud API ───────────────────────────────────
@@ -68,13 +86,13 @@ export async function POST(req: NextRequest) {
       pdfResponse = await fetch(LATEX_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ latexCode: sanitizeResult.content }),
+        body: JSON.stringify({ latexCode: safeLatex }),
         signal: controller.signal,
       })
       isPdf = pdfResponse.ok
     } else if (LATEX_API_URL.includes('texlive.net')) {
       const formData = new FormData()
-      formData.append('filecontents[]', sanitizeResult.content)
+      formData.append('filecontents[]', safeLatex)
       formData.append('filename[]', 'document.tex')
       formData.append('engine', 'pdflatex')
       formData.append('return', 'pdf')
@@ -95,8 +113,8 @@ export async function POST(req: NextRequest) {
       /**
        * LaTeX.Online requires GET requests for direct text compilation.
        */
-      const encodedText = encodeURIComponent(sanitizeResult.content);
-      const url = `${LATEX_API_URL}?text=${encodedText}`;
+      const encodedText = encodeURIComponent(safeLatex)
+      const url = `${LATEX_API_URL}?text=${encodedText}`
       
       pdfResponse = await fetch(url, {
         method: 'GET',
@@ -112,7 +130,7 @@ export async function POST(req: NextRequest) {
         { status: 504 },
       )
     }
-    console.error('[compile-latex] Fetch error:', err)
+    logger.error('compile-latex', 'Fetch error', err)
     return NextResponse.json(
       { error: 'Failed to reach LaTeX compilation service' },
       { status: 502 },
@@ -134,7 +152,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.error('[compile-latex] API error details:', details.slice(0, 500))
+    logger.error('compile-latex', 'API error details', details.slice(0, 500))
     return NextResponse.json(
       {
         error: 'LaTeX compilation failed. Check your LaTeX syntax.',
@@ -156,4 +174,4 @@ export async function POST(req: NextRequest) {
       'Cache-Control': 'no-store',
     },
   })
-}
+})

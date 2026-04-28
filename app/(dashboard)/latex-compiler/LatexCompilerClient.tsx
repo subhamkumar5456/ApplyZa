@@ -7,6 +7,9 @@ import { LaTeXEditor } from '@/components/refiner/LaTeXEditor'
 import { PDFPreview } from '@/components/refiner/PDFPreview'
 import { cleanLatexContent, validateLatex, DEFAULT_LATEX_TEMPLATE } from '@/lib/latex-utils'
 import { createClient } from '@/lib/supabase/client'
+import { WorkflowStepper } from '@/components/workflow-stepper'
+import { useEditorShortcuts } from '@/lib/hooks/use-editor-shortcuts'
+import { EditorShortcutHints } from '@/components/editor-shortcut-hints'
 import { useToast } from '@/lib/hooks/use-toast'
 
 export default function LatexCompilerClient() {
@@ -101,8 +104,19 @@ export default function LatexCompilerClient() {
     }
   }
 
+  useEditorShortcuts({
+    onSave: handleSave,
+    onCompile: () => {
+      if (compileState !== 'compiling') handleCompile()
+    },
+    onDownload: () => {
+      if (pdfUrl) handleDownload()
+    }
+  })
+
   return (
     <div className="space-y-4">
+      <WorkflowStepper currentStep="compile" />
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3 justify-between items-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
         <div className="flex flex-wrap gap-2">
@@ -127,6 +141,10 @@ export default function LatexCompilerClient() {
           </Button>
         </div>
         
+        <div className="hidden lg:block ml-auto mr-4">
+          <EditorShortcutHints />
+        </div>
+
         {pdfUrl && (
           <Button onClick={handleDownload} variant="outline" className="gap-2 border-slate-700 text-slate-300 hover:bg-slate-800">
             <Download className="w-4 h-4" />

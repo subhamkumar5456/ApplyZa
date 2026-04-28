@@ -164,6 +164,12 @@ export interface Database {
           latex_content: string
           modifications: Json
           version_label: string | null
+          source: 'manual' | 'ai_refined' | 'ai_generated' | 'template'
+          job_title: string | null
+          company: string | null
+          ats_score: number | null
+          diff_summary: string | null
+          is_favorite: boolean
           created_at: string
         }
         Insert: {
@@ -175,6 +181,12 @@ export interface Database {
           latex_content: string
           modifications?: Json
           version_label?: string | null
+          source?: 'manual' | 'ai_refined' | 'ai_generated' | 'template'
+          job_title?: string | null
+          company?: string | null
+          ats_score?: number | null
+          diff_summary?: string | null
+          is_favorite?: boolean
           created_at?: string
         }
         Update: {
@@ -182,6 +194,12 @@ export interface Database {
           latex_content?: string
           modifications?: Json
           version_label?: string | null
+          source?: 'manual' | 'ai_refined' | 'ai_generated' | 'template'
+          job_title?: string | null
+          company?: string | null
+          ats_score?: number | null
+          diff_summary?: string | null
+          is_favorite?: boolean
         }
         Relationships: []
       }

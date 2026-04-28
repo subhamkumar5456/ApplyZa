@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { env } from '@/lib/env'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -28,9 +29,10 @@ function LoginForm() {
 
     setIsLoading(true)
     try {
-      console.log('Attempting login with:', { email: email.trim().toLowerCase(), password: '***' })
-      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-      console.log('Anon Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Supabase URL:', env.NEXT_PUBLIC_SUPABASE_URL)
+        console.log('Anon Key exists:', !!env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      }
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),

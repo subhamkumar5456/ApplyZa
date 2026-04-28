@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
 import { History, FileCode2, Wand2, Pencil, ChevronRight } from 'lucide-react'
+import { VersionListSkeleton } from '@/components/skeletons/version-list-skeleton'
 import { cn } from '@/lib/utils'
 
 interface VersionHistoryProps {
@@ -53,10 +54,7 @@ export function VersionHistory({
       </CardHeader>
       <CardContent className="space-y-1.5 pt-0">
         {isLoading ? (
-          <div className="flex items-center gap-2 py-2 text-xs text-slate-500">
-            <div className="h-3 w-3 animate-spin rounded-full border border-violet-500 border-t-transparent" />
-            Loading versions…
-          </div>
+          <VersionListSkeleton />
         ) : (
           versions.map((v) => {
             const Icon = versionIcons[v.version_type] ?? FileCode2

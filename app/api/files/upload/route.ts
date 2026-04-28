@@ -1,7 +1,9 @@
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { env } from '@/lib/env'
+import { logger } from '@/lib/logger'
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = env.NODE_ENV === 'development'
 
 export async function POST(request: NextRequest) {
   // Step 1: Auth check — use getUser() for secure server-side auth verification
@@ -10,7 +12,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerSupabaseClient()
     const { data, error } = await supabase.auth.getUser()
     if (error) {
-      console.error('[Upload] Auth error:', error)
+      logger.error('files/upload', 'Auth error', error)
       return NextResponse.json(
         { error: 'Authentication failed', step: 'auth', ...(isDev && { detail: error.message }) },
         { status: 401 }
@@ -18,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
     user = data.user
   } catch (err) {
-    console.error('[Upload] Failed to initialise Supabase client:', err)
+    logger.error('files/upload', 'Failed to initialise Supabase client', err)
     return NextResponse.json(
       { error: 'Server configuration error', step: 'client-init' },
       { status: 500 }
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
     file = rawFile
     title = rawTitle.trim()
   } catch (err) {
-    console.error('[Upload] Failed to parse form data:', err)
+    logger.error('files/upload', 'Failed to parse form data', err)
     return NextResponse.json(
       { error: 'Failed to parse request body', step: 'parse-form' },
       { status: 400 }
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
   const filePath = `${user.id}/${fileName}`
 
-  console.log('[Upload] Uploading to storage bucket "resumes", path:', filePath)
+  logger.info('files/upload', `Uploading to storage bucket "resumes", path: ${filePath}`)
 
   const arrayBuffer = await file.arrayBuffer()
 
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
     })
 
   if (uploadError) {
-    console.error('[Upload] Storage upload error:', uploadError)
+    logger.error('files/upload', 'Storage upload error', uploadError)
     return NextResponse.json(
       {
         error: 'Failed to upload file to storage',
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  console.log('[Upload] Storage upload successful')
+  logger.info('files/upload', 'Storage upload successful')
 
   // Step 5: Get public URL
   const { data: { publicUrl } } = serviceClient.storage
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest) {
     .getPublicUrl(filePath)
 
   // Step 6: Insert resume record
-  console.log('[Upload] Inserting resume record for user:', user.id)
+  logger.info('files/upload', `Inserting resume record for user: ${user.id}`)
 
   const { data: resume, error: dbError } = await serviceClient
     .from('resumes')
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (dbError || !resume) {
-    console.error('[Upload] Database insert error (resumes):', dbError)
+    logger.error('files/upload', 'Database insert error (resumes)', dbError)
     // Roll back the storage upload to avoid orphan files
     await serviceClient.storage.from('resumes').remove([filePath])
     return NextResponse.json(
@@ -142,7 +144,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  console.log('[Upload] Resume record created, id:', resume.id)
+  logger.info('files/upload', `Resume record created, id: ${resume.id}`)
 
   // Step 7: Create parse job (non-fatal if it fails)
   const { error: jobError } = await serviceClient
@@ -159,9 +161,9 @@ export async function POST(request: NextRequest) {
     })
 
   if (jobError) {
-    console.error('[Upload] Job creation error (non-fatal):', jobError)
+    logger.error('files/upload', 'Job creation error (non-fatal)', jobError)
   } else {
-    console.log('[Upload] Parse job queued for resume:', resume.id)
+    logger.info('files/upload', `Parse job queued for resume: ${resume.id}`)
   }
 
   return NextResponse.json({ id: resume.id, message: 'Resume uploaded successfully' })

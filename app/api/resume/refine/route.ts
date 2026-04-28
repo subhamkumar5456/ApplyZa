@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { refineResumeToLatex } from '@/lib/gemini/refine'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { refineResumeToLatex } from '@/lib/huggingface/refine'
+import { withAuth } from '@/lib/auth-guard'
+import { rateLimit } from '@/lib/rate-limit'
+import { RateLimitError } from '@/lib/errors'
+import { saveVersion } from '@/lib/versions'
+import { env } from '@/lib/env'
+import { logger } from '@/lib/logger'
 
 // ============================================================
 // POST /api/resume/refine
@@ -11,35 +17,32 @@ import { refineResumeToLatex } from '@/lib/gemini/refine'
 
 export const maxDuration = 60 // Vercel: allow up to 60s for AI generation
 
-export async function POST(req: NextRequest) {
+const limiter = rateLimit({ uniqueTokenPerInterval: 500, interval: 60000 })
+
+export const POST = withAuth(async (req: NextRequest, userId: string) => {
   // ── Feature flag guard ──────────────────────────────────────
-  if (process.env.ENABLE_RESUME_REFINER !== 'true') {
+  if (env.ENABLE_RESUME_REFINER !== 'true') {
     return NextResponse.json(
       { error: 'Feature not available', code: 'FEATURE_DISABLED' },
       { status: 403 },
     )
   }
 
-  // ── Auth ────────────────────────────────────────────────────
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
-
-  const authHeader = req.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
+  // ── Rate Limiting (5 requests/minute per IP) ────────────────
+  const ip = req.headers.get('x-forwarded-for') || 'anonymous'
+  try {
+    await limiter.check(5, ip)
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json(
+        { error: error.message, retryAfter: 60 },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      )
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 
-  const {
-    data: { user },
-    error: authErr,
-  } = await supabase.auth.getUser(token)
-
-  if (authErr || !user) {
-    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
-  }
+  const supabase = createServerSupabaseClient()
 
   // ── Parse body ──────────────────────────────────────────────
   let body: {
@@ -73,7 +76,7 @@ export async function POST(req: NextRequest) {
     .eq('resume_id', resumeId)
     .eq('analysis_id', analysisId)
     .eq('version_type', 'refined')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
     .from('resumes')
     .select('parsed_text')
     .eq('id', resumeId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .single()
 
   if (resumeErr || !resume) {
@@ -124,7 +127,7 @@ export async function POST(req: NextRequest) {
     refinedLatex = result.refinedLatex
     modifications = result.modifications
   } catch (err) {
-    console.error('[/api/resume/refine] Gemini error:', err)
+    logger.error('resume/refine', 'Hugging Face error', err)
     return NextResponse.json(
       {
         error: err instanceof Error ? err.message : 'AI generation failed',
@@ -135,35 +138,27 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Persist version ─────────────────────────────────────────
-  const { data: version, error: insertErr } = await supabase
-    .from('resume_versions')
-    .insert({
-      user_id: user.id,
-      resume_id: resumeId,
-      analysis_id: analysisId,
-      version_type: 'refined',
-      latex_content: refinedLatex,
-      modifications: modifications,
-      version_label: `AI Refined — ${jobTitle}`,
-    })
-    .select('id')
-    .single()
-
-  if (insertErr || !version) {
-    console.error('[/api/resume/refine] Insert error:', insertErr)
-    // Still return the result even if saving fails
-    return NextResponse.json({
-      refinedLatex,
+  let versionId = null;
+  try {
+    const version = await saveVersion({
+      userId,
+      resumeId,
+      analysisId,
+      latexContent: refinedLatex,
+      source: 'ai_refined',
+      jobTitle,
+      company: companyName,
       modifications,
-      versionId: null,
-      cached: false,
-    })
+    });
+    versionId = version.id;
+  } catch (insertErr) {
+    logger.error('resume/refine', 'Insert error', insertErr)
   }
 
   return NextResponse.json({
     refinedLatex,
     modifications,
-    versionId: version.id,
+    versionId,
     cached: false,
   })
-}
+})

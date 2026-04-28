@@ -1,4 +1,5 @@
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function DELETE(
@@ -42,11 +43,11 @@ export async function DELETE(
             .remove([storagePath])
             
           if (storageError) {
-            console.error('[Delete] Failed to delete from storage:', storageError)
+            logger.error('resumes/delete', 'Failed to delete from storage', storageError)
           }
         }
       } catch (e) {
-        console.error('[Delete] Storage path parse error:', e)
+        logger.error('resumes/delete', 'Storage path parse error', e)
       }
     }
 
@@ -58,14 +59,14 @@ export async function DELETE(
       .eq('id', id)
 
     if (deleteError) {
-      console.error('[Delete] Database delete error:', deleteError)
+      logger.error('resumes/delete', 'Database delete error', deleteError)
       return NextResponse.json({ error: 'Failed to delete record' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, message: 'Resume deleted' })
     
   } catch (error) {
-    console.error('[Delete] Failed to process delete request:', error)
+    logger.error('resumes/delete', 'Failed to process delete request', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

@@ -1,15 +1,22 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { analyzeResumeMatch } from '@/lib/gemini/analyze'
+import { analyzeResumeMatch } from '@/lib/huggingface/analyze'
 import { AnalysisResult } from '@/types/analysis'
 import mammoth from 'mammoth'
+import { withAuth } from '@/lib/auth-guard'
+import { rateLimit } from '@/lib/rate-limit'
+import { RateLimitError } from '@/lib/errors'
+import { env } from '@/lib/env'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 // Allow up to 5 minutes for the AI call
 export const maxDuration = 300
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = env.NODE_ENV === 'development'
+
+const limiter = rateLimit({ uniqueTokenPerInterval: 500, interval: 60000 })
 
 // ─── Timeout helper ───────────────────────────────────────────────────────────
 
@@ -23,7 +30,21 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   })
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, userId: string) => {
+  // ── Rate Limiting (5 requests/minute per IP) ────────────────
+  const ip = request.headers.get('x-forwarded-for') || 'anonymous'
+  try {
+    await limiter.check(5, ip)
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json(
+        { error: error.message, retryAfter: 60 },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      )
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+  }
+
   let jobId: string
   try {
     const body = await request.json()
@@ -42,11 +63,13 @@ export async function POST(request: NextRequest) {
     .from('jobs')
     .select('*')
     .eq('id', jobId)
+    // Extra guard: Ensure the job belongs to the authenticated user
+    .eq('user_id', userId)
     .single()
 
   if (jobFetchError || !job) {
-    console.error('[Process] Job not found:', jobId)
-    return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    logger.error('jobs/process', `Job not found or unauthorized: ${jobId}`)
+    return NextResponse.json({ error: 'Job not found or unauthorized' }, { status: 404 })
   }
 
   // Guard against re-processing — but allow retrying jobs stuck in "processing"
@@ -62,12 +85,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Job is already being processed' })
     }
     // Otherwise fall through — the previous attempt likely crashed
-    console.log(`[Process] Job ${jobId} was stuck in processing, retrying`)
+    logger.warn('jobs/process', `Job ${jobId} was stuck in processing, retrying`)
   }
 
   // Mark as processing
   await db.from('jobs').update({ status: 'processing', updated_at: new Date().toISOString() }).eq('id', jobId)
-  console.log(`[Process] Job ${jobId} type=${job.type} — started`)
+  logger.info('jobs/process', `Job ${jobId} type=${job.type} — started`)
 
   try {
     if (job.type === 'analyze_match') {
@@ -78,11 +101,11 @@ export async function POST(request: NextRequest) {
       throw new Error(`Unknown job type: ${job.type}`)
     }
 
-    console.log(`[Process] Job ${jobId} completed`)
+    logger.info('jobs/process', `Job ${jobId} completed`)
     return NextResponse.json({ success: true, jobId })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error(`[Process] Job ${jobId} failed:`, message)
+    logger.error('jobs/process', `Job ${jobId} failed: ${message}`)
 
     await db
       .from('jobs')
@@ -98,7 +121,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // ─── analyze_match ────────────────────────────────────────────────────────────
 
@@ -114,8 +137,8 @@ async function processAnalyzeMatch(
   }
   const { resume_id, job_title, job_description, company_name } = payload
 
-  if (!resume_id || !job_title || !job_description || !company_name) {
-    throw new Error('Missing required payload fields for analyze_match')
+  if (!resume_id || !job_title || !job_description) {
+    throw new Error('Missing required payload fields: resume_id, job_title, job_description')
   }
 
   // Fetch resume
@@ -135,20 +158,20 @@ async function processAnalyzeMatch(
   let resumeText = (resume.parsed_text as string | null) ?? ''
 
   if (!resumeText) {
-    console.log(`[Process] Downloading resume file from storage`)
+    logger.info('jobs/process', 'Downloading resume file from storage')
     const fileBuffer = await withTimeout(
       downloadFromStorage(db, resume.file_url as string),
       30_000,
       'Resume download',
     )
-    console.log(`[Process] Downloaded ${fileBuffer.length} bytes, extracting text...`)
+    logger.info('jobs/process', `Downloaded ${fileBuffer.length} bytes, extracting text...`)
 
     resumeText = await withTimeout(
       extractTextFromBuffer(fileBuffer, resume.file_type as string),
       60_000,
       'Text extraction',
     )
-    console.log(`[Process] Extracted ${resumeText.length} chars of text`)
+    logger.info('jobs/process', `Extracted ${resumeText.length} chars of text`)
 
     // Cache for future use
     await db
@@ -161,11 +184,11 @@ async function processAnalyzeMatch(
     throw new Error('Could not extract text from resume file')
   }
 
-  console.log(`[Process] Calling Gemini (${resumeText.length} chars)`)
+  logger.info('jobs/process', `Calling Hugging Face (${resumeText.length} chars)`)
   const analysisResult: AnalysisResult = await withTimeout(
     analyzeResumeMatch(resumeText, job_description, job_title, company_name),
     120_000,
-    'Gemini analysis',
+    'Hugging Face analysis',
   )
 
   // Serialize to plain JSON-safe object for Supabase JSONB columns
@@ -203,7 +226,7 @@ async function processAnalyzeMatch(
     throw new Error(`Failed to save analysis: ${analysisError.message}`)
   }
 
-  console.log(`[Process] Analysis saved: ${analysis.id}`)
+  logger.info('jobs/process', `Analysis saved: ${analysis.id}`)
 
   // Mark job completed with result embedded for polling
   const resultJson2 = JSON.parse(JSON.stringify(analysisResult)) as import('@/types/database').Json
@@ -230,7 +253,7 @@ async function processParseResume(
     throw new Error('Missing required payload fields for parse_resume')
   }
 
-  console.log(`[Process] Downloading resume for parsing`)
+  logger.info('jobs/process', 'Downloading resume for parsing')
   const fileBuffer = await withTimeout(
     downloadFromStorage(db, file_url),
     30_000,
@@ -251,7 +274,7 @@ async function processParseResume(
     })
     .eq('id', resume_id)
 
-  console.log(`[Process] Resume parsed, ${parsedText.length} chars`)
+  logger.info('jobs/process', `Resume parsed, ${parsedText.length} chars`)
 
   await db
     .from('jobs')
