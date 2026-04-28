@@ -234,6 +234,48 @@ export interface Database {
         }
         Relationships: []
       }
+      cover_letters: {
+        Row: {
+          id: string;
+          user_id: string;
+          resume_id: string;
+          job_id: string | null;
+          content: string;
+          job_title: string | null;
+          company_name: string | null;
+          format: 'markdown' | 'latex';
+          tone: 'professional' | 'enthusiastic' | 'formal';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          resume_id: string;
+          job_id?: string | null;
+          content: string;
+          job_title?: string | null;
+          company_name?: string | null;
+          format?: 'markdown' | 'latex';
+          tone?: 'professional' | 'enthusiastic' | 'formal';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          resume_id?: string;
+          job_id?: string | null;
+          content?: string;
+          job_title?: string | null;
+          company_name?: string | null;
+          format?: 'markdown' | 'latex';
+          tone?: 'professional' | 'enthusiastic' | 'formal';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

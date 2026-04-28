@@ -19,6 +19,8 @@ const envSchema = z.object({
   // Feature Flags
   ENABLE_RESUME_REFINER: z.string().optional(),
   NEXT_PUBLIC_ENABLE_RESUME_REFINER: z.string().optional(),
+  ENABLE_COVER_LETTER_GENERATOR: z.string().optional(),
+  NEXT_PUBLIC_ENABLE_COVER_LETTER_GENERATOR: z.string().optional(),
 });
 
 const _env = envSchema.safeParse({
@@ -38,6 +40,8 @@ const _env = envSchema.safeParse({
   
   ENABLE_RESUME_REFINER: process.env.ENABLE_RESUME_REFINER,
   NEXT_PUBLIC_ENABLE_RESUME_REFINER: process.env.NEXT_PUBLIC_ENABLE_RESUME_REFINER,
+  ENABLE_COVER_LETTER_GENERATOR: process.env.ENABLE_COVER_LETTER_GENERATOR,
+  NEXT_PUBLIC_ENABLE_COVER_LETTER_GENERATOR: process.env.NEXT_PUBLIC_ENABLE_COVER_LETTER_GENERATOR,
 });
 
 if (!_env.success) {

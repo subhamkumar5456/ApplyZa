@@ -42,6 +42,11 @@ export default async function DashboardPage() {
 
   const latestAnalysis = latestAnalysisData as { ats_score: number } | null | undefined;
 
+  const { count: totalCoverLetters } = await supabase
+    .from('cover_letters')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
 
   const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'there'
 
@@ -91,14 +96,14 @@ export default async function DashboardPage() {
         </Card>
         <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 border-violet-200 dark:border-violet-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Quick Action</CardTitle>
-            <Sparkles className="h-4 w-4 text-violet-600" />
+            <CardTitle className="text-sm font-medium">Cover Letters</CardTitle>
+            <FileText className="h-4 w-4 text-violet-600" />
           </CardHeader>
           <CardContent>
-            <Button size="sm" asChild className="bg-gradient-to-r from-violet-600 to-indigo-600">
-              <Link href="/resumes/new">
-                <Upload className="mr-1 h-3 w-3" />
-                Upload Resume
+            <div className="text-2xl font-bold">{totalCoverLetters || 0}</div>
+            <Button size="sm" asChild className="mt-2 w-full bg-gradient-to-r from-violet-600 to-indigo-600">
+              <Link href="/dashboard/cover-letters">
+                Generate New
               </Link>
             </Button>
           </CardContent>

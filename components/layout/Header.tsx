@@ -61,6 +61,15 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                 Resumes
               </span>
             </Link>
+            <Link
+              href="/dashboard/cover-letters"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <span className="flex items-center gap-1">
+                <FileText className="h-4 w-4" />
+                Cover Letters
+              </span>
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-2">

@@ -20,7 +20,8 @@ import { WorkflowStepper } from '@/components/workflow-stepper'
 import { useToast } from '@/lib/hooks/use-toast'
 import { useResumeAnalysis } from '@/lib/hooks/use-resume-analysis'
 import { AnalysisResult } from '@/types/analysis'
-import { ArrowLeft, Loader2, Sparkles, BarChart3, Target, Lightbulb, Wand2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles, BarChart3, Target, Lightbulb, Wand2, FileText } from 'lucide-react'
+import { CoverLetterTab } from '@/components/refiner/CoverLetterTab'
 
 export default function AnalyzePage() {
   const router = useRouter()
@@ -220,7 +221,7 @@ export default function AnalyzePage() {
 
       {analysisResult && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="score" className="gap-1">
               <BarChart3 className="h-3 w-3" />
               ATS Score
@@ -237,6 +238,11 @@ export default function AnalyzePage() {
               <Wand2 className="h-3 w-3" />
               <span className="hidden sm:inline">Optimized</span>
               <span className="sm:hidden">AI</span>
+            </TabsTrigger>
+            <TabsTrigger value="cover-letter" className="gap-1">
+              <FileText className="h-3 w-3" />
+              <span className="hidden sm:inline">Cover Letter</span>
+              <span className="sm:hidden">Letter</span>
             </TabsTrigger>
           </TabsList>
 
@@ -298,6 +304,16 @@ export default function AnalyzePage() {
               jobDescription={jobDescription}
               jobTitle={jobTitle}
               companyName={companyName}
+            />
+          </TabsContent>
+
+          <TabsContent value="cover-letter" className="mt-4">
+            <CoverLetterTab
+              resumeId={resumeId}
+              jobId={activeAnalysisId || undefined}
+              initialJobTitle={jobTitle}
+              initialCompany={companyName}
+              initialJobDescription={jobDescription}
             />
           </TabsContent>
         </Tabs>

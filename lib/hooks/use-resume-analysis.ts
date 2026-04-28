@@ -131,7 +131,7 @@ export function useResumeAnalysis() {
           // ── Dev Mode: Log full error details ─────────────────
           if (process.env.NODE_ENV === 'development') {
             console.error('[Analysis] [DEV] Job failed:', {
-              jobId: job.id,
+              jobId: jobId,
               error: errorMsg,
               job: job,
             });

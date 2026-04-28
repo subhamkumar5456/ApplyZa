@@ -25,9 +25,10 @@ const sidebarLinks = [
     icon: FileText,
   },
   {
-    title: 'Upload New',
-    href: '/resumes/new',
-    icon: Upload,
+    title: 'Cover Letters',
+    href: '/dashboard/cover-letters',
+    icon: FileText,
+    badge: 'New',
   },
   {
     title: 'LaTeX Compiler',
@@ -74,7 +75,16 @@ export function Sidebar({ isOpen = true }: SidebarProps) {
                 title={!isOpen ? link.title : undefined}
               >
                 <link.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-violet-600')} />
-                {isOpen && <span className="whitespace-nowrap">{link.title}</span>}
+                {isOpen && (
+                  <>
+                    <span className="whitespace-nowrap">{link.title}</span>
+                    {link.badge && (
+                      <span className="ml-auto flex h-5 items-center rounded-full bg-violet-600 px-1.5 text-[10px] font-bold text-white">
+                        {link.badge}
+                      </span>
+                    )}
+                  </>
+                )}
               </Link>
             )
           })}

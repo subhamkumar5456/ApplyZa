@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from './supabase/server';
 import { AuthError } from './errors';
 
-type RouteHandler = (req: NextRequest, userId: string) => Promise<NextResponse> | NextResponse;
+type RouteHandler = (req: NextRequest, userId: string, ...args: any[]) => Promise<NextResponse> | NextResponse;
 
 export function withAuth(handler: RouteHandler) {
-  return async (req: NextRequest): Promise<NextResponse> => {
+  return async (req: NextRequest, ...args: any[]): Promise<NextResponse> => {
     try {
       const supabase = createServerSupabaseClient();
       const {
@@ -16,7 +16,7 @@ export function withAuth(handler: RouteHandler) {
         throw new AuthError('Unauthorized: No active session');
       }
 
-      return await handler(req, session.user.id);
+      return await handler(req, session.user.id, ...args);
     } catch (error: any) {
       if (error instanceof AuthError) {
         return NextResponse.json({ error: error.message }, { status: error.statusCode });
