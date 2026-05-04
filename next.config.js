@@ -4,7 +4,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    serverComponentsExternalPackages: ['lru-cache'],
   },
 }
 
 module.exports = nextConfig
+
