@@ -48,6 +48,7 @@ export interface Database {
           parsed_data: Json | null
           embedding: number[] | null
           status: 'uploaded' | 'parsing' | 'parsed' | 'error'
+          last_analysis_id: string | null // FK → analyses.id (most recent analysis)
           created_at: string
           updated_at: string
         }
@@ -63,6 +64,7 @@ export interface Database {
           parsed_data?: Json | null
           embedding?: number[] | null
           status?: 'uploaded' | 'parsing' | 'parsed' | 'error'
+          last_analysis_id?: string | null // FK → analyses.id (most recent analysis)
           created_at?: string
           updated_at?: string
         }
@@ -76,6 +78,7 @@ export interface Database {
           parsed_data?: Json | null
           embedding?: number[] | null
           status?: 'uploaded' | 'parsing' | 'parsed' | 'error'
+          last_analysis_id?: string | null // FK → analyses.id (most recent analysis)
           updated_at?: string
         }
         Relationships: []

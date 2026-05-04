@@ -24,9 +24,10 @@ export default async function ResumesPage() {
       file_size,
       status,
       parsed_data,
+      last_analysis_id,
       created_at,
       updated_at,
-      analyses (
+      last_analysis:analyses!last_analysis_id (
         id,
         ats_score,
         job_title,

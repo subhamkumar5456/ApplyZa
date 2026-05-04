@@ -228,6 +228,23 @@ async function processAnalyzeMatch(
 
   logger.info('jobs/process', `Analysis saved: ${analysis.id}`)
 
+  // 🔥 Update resume's last_analysis_id to the new analysis (fast FK reference)
+  const { error: resumeUpdateError } = await db
+    .from('resumes')
+    .update({
+      last_analysis_id: analysis.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', resume_id)
+
+  if (resumeUpdateError) {
+    // Non-fatal: the analysis is saved; this is only a convenience reference.
+    // The admin sync endpoint can recover this if needed.
+    logger.error('jobs/process', `Failed to update last_analysis_id for resume ${resume_id}: ${resumeUpdateError.message}`)
+  } else {
+    logger.info('jobs/process', `Resume ${resume_id} last_analysis_id → ${analysis.id}`)
+  }
+
   // Mark job completed with result embedded for polling
   const resultJson2 = JSON.parse(JSON.stringify(analysisResult)) as import('@/types/database').Json
   await db

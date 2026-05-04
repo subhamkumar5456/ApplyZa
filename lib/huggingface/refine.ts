@@ -12,6 +12,73 @@ export interface RefineLatexResult {
   modifications: string[]
 }
 
+/**
+ * Estimates whether the original resume text fits on a single page.
+ * ~3 500 characters is a reliable upper bound for a dense single-page resume.
+ */
+function estimatePageCount(text: string): 'one-page' | 'multi-page' {
+  return text.trim().length <= 4000 ? 'one-page' : 'multi-page';
+}
+
+/**
+ * Post-processes AI-generated LaTeX to enforce compact spacing settings.
+ * Even if the model ignores the prescribed preamble, these transformations
+ * patch the most common culprits that cause overflow to a second page.
+ */
+function enforceCompactLatex(latex: string, pageConstraint: 'one-page' | 'multi-page'): string {
+  if (pageConstraint !== 'one-page') return latex;
+
+  // 1. Force font size to 9pt (patch \documentclass[...]{article})
+  let patched = latex.replace(
+    /\\documentclass\[([^\]]*?)\]{article}/,
+    (_, opts) => {
+      // Remove any existing pt size option and set 9pt
+      const cleanOpts = opts
+        .split(',')
+        .map((o: string) => o.trim())
+        .filter((o: string) => !o.match(/^\d+pt$/))
+        .join(',');
+      return `\\documentclass[9pt${cleanOpts ? ',' + cleanOpts : ''}]{article}`;
+    }
+  );
+
+  // 2. Force tight geometry — replace any \usepackage[...]{geometry} line
+  patched = patched.replace(
+    /\\usepackage(\[[^\]]*\])?\{geometry\}/g,
+    '\\usepackage[margin=0.4in]{geometry}'
+  );
+
+  // 3. Inject compact spacing commands right before \begin{document} if they're absent
+  const compactBlock = [
+    '\\setlength{\\parskip}{0pt}',
+    '\\setlength{\\parindent}{0pt}',
+    '\\linespread{0.9}',
+    '\\setlist[itemize]{noitemsep,topsep=0pt,partopsep=0pt,parsep=0pt,leftmargin=*}',
+    '\\setlist[enumerate]{noitemsep,topsep=0pt,partopsep=0pt,parsep=0pt,leftmargin=*}',
+    '\\titlespacing{\\section}{0pt}{4pt}{2pt}',
+    '\\titlespacing{\\subsection}{0pt}{3pt}{1pt}',
+  ];
+
+  for (const cmd of compactBlock) {
+    const escaped = cmd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // If not already present, inject before \begin{document}
+    if (!new RegExp(escaped).test(patched)) {
+      patched = patched.replace('\\begin{document}', `${cmd}\n\\begin{document}`);
+    }
+  }
+
+  // 4. Remove rogue vertical spacing commands
+  patched = patched
+    .replace(/\\vspace\*?\{[^}]+\}/g, '')
+    .replace(/\\bigskip/g, '')
+    .replace(/\\medskip/g, '')
+    .replace(/\\smallskip/g, '')
+    // Remove named vertical gap spacers in optional args of \\\\ e.g. \\[0.5em]
+    .replace(/\\\\\[\d*\.?\d+(?:em|ex|pt|mm|cm)\]/g, '\\\\');
+
+  return patched;
+}
+
 export async function refineResumeToLatex(
   resumeText: string,
   jobDescription: string,
@@ -19,6 +86,7 @@ export async function refineResumeToLatex(
   companyName: string,
   missingKeywords: string[],
 ): Promise<RefineLatexResult> {
+  const pageConstraint = estimatePageCount(resumeText);
   const suggestions = [ `Ensure the resume targets the requirements in this job description: ${jobDescription.slice(0, 1000)}` ]
   
   const prompt = buildRefinementPrompt(
@@ -26,7 +94,8 @@ export async function refineResumeToLatex(
     suggestions,
     jobTitle,
     companyName,
-    missingKeywords.slice(0, 30)
+    missingKeywords.slice(0, 30),
+    pageConstraint,
   )
 
   const response = await withRetry(
@@ -130,7 +199,9 @@ export async function refineResumeToLatex(
     }
   }
 
-  return validateRefineResult(parsed)
+  const result = validateRefineResult(parsed)
+  result.refinedLatex = enforceCompactLatex(result.refinedLatex, pageConstraint)
+  return result
 }
 
 function validateRefineResult(raw: unknown): RefineLatexResult {

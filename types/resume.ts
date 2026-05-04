@@ -66,6 +66,7 @@ export interface ResumeWithAnalysis {
   file_size: number
   status: string
   parsed_data: ParsedResume | null
+  last_analysis_id: string | null
   created_at: string
   updated_at: string
   analyses: {
@@ -76,4 +77,43 @@ export interface ResumeWithAnalysis {
     status: string
     created_at: string
   }[]
+}
+
+// ─── last_analysis_id architecture types ─────────────────────────────────────
+
+import type { Database } from './database'
+
+/** Raw row from the resumes table (includes last_analysis_id) */
+export type ResumeRow = Database['public']['Tables']['resumes']['Row']
+
+/** Raw row from the analyses table */
+export type AnalysisRow = Database['public']['Tables']['analyses']['Row']
+
+/**
+ * Resume with its last analysis pre-joined via last_analysis_id.
+ * Supabase returns the joined row under the "last_analysis" key.
+ */
+export interface ResumeWithLastAnalysis extends ResumeRow {
+  last_analysis: AnalysisRow | null
+}
+
+/**
+ * Resume with full analysis history (for history / comparison views).
+ */
+export interface ResumeWithAnalysisHistory extends ResumeRow {
+  analyses: AnalysisRow[]
+  last_analysis: AnalysisRow | null
+}
+
+/** Lightweight DTO surfaced to API consumers */
+export interface ResumeDetailsDTO {
+  id: string
+  title: string
+  status: string
+  uploaded_at: string
+  latest_ats_score: number | null
+  latest_analysis_date: string | null
+  total_analyses: number
+  matched_skills: string[]
+  missing_keywords: string[]
 }

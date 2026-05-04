@@ -14,33 +14,41 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const { data: resumes, error: resumesError } = await supabase
+  const { data: resumes } = await supabase
     .from('resumes')
-    .select('id, title, status, created_at')
+    .select(`
+      id,
+      title,
+      status,
+      created_at,
+      last_analysis:analyses!last_analysis_id (
+        id,
+        ats_score,
+        job_title,
+        company_name,
+        created_at
+      )
+    `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(5)
 
-  const { count: totalResumes } = await supabase
-    .from('resumes')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+  const [
+    { count: totalResumes },
+    { count: totalAnalyses },
+  ] = await Promise.all([
+    supabase
+      .from('resumes')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+    supabase
+      .from('analyses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+  ])
 
-  const { count: totalAnalyses } = await supabase
-    .from('analyses')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-
-  const { data: latestAnalysisData } = await supabase
-    .from('analyses')
-    .select('ats_score')
-    .eq('user_id', user.id)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-
-  const latestAnalysis = latestAnalysisData as { ats_score: number } | null | undefined;
+  // Derive latest ATS score from the most-recently-updated resume's last_analysis
+  const latestAnalysis = resumes?.find((r: any) => r.last_analysis?.ats_score != null)?.last_analysis as { ats_score: number } | null | undefined
 
   const { count: totalCoverLetters } = await supabase
     .from('cover_letters')

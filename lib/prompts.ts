@@ -50,7 +50,50 @@ ${resumeText}
 Respond with the JSON object only. No markdown. No code fences.`;
 }
 
-export function buildRefinementPrompt(resumeText: string, suggestions: string[], jobTitle: string, companyName: string = '', missingKeywords: string[] = []): string {
+export function buildRefinementPrompt(
+  resumeText: string,
+  suggestions: string[],
+  jobTitle: string,
+  companyName: string = '',
+  missingKeywords: string[] = [],
+  pageConstraint: 'one-page' | 'multi-page' = 'one-page',
+): string {
+  const onePageRules = pageConstraint === 'one-page' ? `
+<ONE-PAGE-CONSTRAINT>
+The original resume fits on ONE page. You MUST keep the output to exactly ONE page.
+To achieve this:
+- Use \\documentclass[9pt,a4paper]{article} — do NOT go above 10pt.
+- Set margins to 0.4in on all sides: \\usepackage[margin=0.4in]{geometry}
+- Set \\setlength{\\parskip}{0pt} and \\setlength{\\parindent}{0pt}
+- Set \\linespread{0.9} (never above 1.0)
+- For itemize: \\setlist[itemize]{noitemsep,topsep=0pt,partopsep=0pt,parsep=0pt,leftmargin=*}
+- For section titles use \\titlespacing{\\section}{0pt}{4pt}{2pt} and \\titlespacing{\\subsection}{0pt}{3pt}{1pt}
+- Do NOT insert blank lines (\\vspace, \\bigskip, \\medskip, \\smallskip) anywhere.
+- Do NOT use \\\\[Xem] vertical spacers.
+- Keep bullet points concise — trim wordy phrases, never remove the core meaning.
+- Do NOT add any section that was not in the original resume.
+</ONE-PAGE-CONSTRAINT>` : ``;
+
+  const prescribedPreamble = pageConstraint === 'one-page' ? `
+<REQUIRED-PREAMBLE>
+Your LaTeX document MUST start with exactly this preamble (you may add extra packages after the geometry line but must not override the spacing packages):
+\\documentclass[9pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[margin=0.4in]{geometry}
+\\usepackage{parskip}
+\\usepackage{enumitem}
+\\usepackage{titlesec}
+\\usepackage{array}
+\\usepackage{xcolor}
+\\usepackage{hyperref}
+\\setlength{\\parskip}{0pt}
+\\setlength{\\parindent}{0pt}
+\\linespread{0.9}
+\\setlist[itemize]{noitemsep,topsep=0pt,partopsep=0pt,parsep=0pt,leftmargin=*}
+\\titlespacing{\\section}{0pt}{4pt}{2pt}
+\\titlespacing{\\subsection}{0pt}{3pt}{1pt}
+</REQUIRED-PREAMBLE>` : ``;
+
   return `You are a professional resume writer, ATS optimization expert, and LaTeX designer. Your task is to refine a candidate's resume and return a completely formatted, stunning LaTeX document.
 
 <RULES>
@@ -58,9 +101,12 @@ export function buildRefinementPrompt(resumeText: string, suggestions: string[],
 2. DO NOT fabricate new projects, roles, metrics, or achievements.
 3. DO NOT remove any section or existing bullet point — you may only improve its phrasing.
 4. Incorporate the provided suggestions and naturally weave in missing keywords where they factually apply based on the candidate's existing experience.
-5. Create a modern, premium, clean, and elegant LaTeX resume. Use standard paragraph formatting and avoid rigid 'tabular' or 'tabularx' environments for long text. FIT EXACTLY ONE PAGE.
+5. Create a modern, premium, clean, and ATS-friendly LaTeX resume. Use standard paragraph formatting and avoid rigid 'tabular' or 'tabularx' environments for long flowing text.
 6. Output your response ONLY as a JSON object matching the exact schema below.
+7. NEVER add extra blank lines, \\vspace, \\bigskip, \\medskip, or \\smallskip commands unless absolutely necessary.
 </RULES>
+${onePageRules}
+${prescribedPreamble}
 
 <SCHEMA>
 {
