@@ -2,19 +2,19 @@ import nodemailer from 'nodemailer'
 import { env } from '@/lib/env';
 
 // Validate env variables
-if (!env.SMTP_USER || !env.SMTP_PASS) {
-  throw new Error('Missing SMTP_USER or SMTP_PASS in environment variables');
-}
+  if (!env.SMTP_USER || !env.SMTP_PASS) {
+    throw new Error('Missing SMTP_USER or SMTP_PASS in environment variables');
+  }
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST || 'smtp.gmail.com',
-  port: env.SMTP_PORT || 465,
-  secure: true,
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-});
+  const transporter = nodemailer.createTransport({
+    host: env.SMTP_HOST || 'smtp.gmail.com',
+    port: env.SMTP_PORT || 465,
+    secure: true,
+    auth: {
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+    },
+  });
 
 // Verify connection on startup
 transporter.verify(function (error, success) {
