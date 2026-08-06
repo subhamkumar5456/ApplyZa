@@ -126,6 +126,15 @@ export const cleanLatexContent = (content: string): string => {
   cleaned = cleaned.replace(/^\*\*.*?\*\*:?\s*/gm, '');
   cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1');
   
+  // Handle JSON-escaped LaTeX: if the AI returned a JSON-encoded string
+  // (double-escaped backslashes like \\section instead of \section),
+  // undo the extra escaping layer.
+  if (cleaned.includes('\\\\documentclass') || cleaned.includes('\\\\begin')) {
+    cleaned = cleaned.replace(/\\\\/g, '\\');
+    cleaned = cleaned.replace(/\\n/g, '\n');
+    cleaned = cleaned.replace(/\\t/g, '\t');
+  }
+  
   // Remove any leading prose/instructions
   const docStart = cleaned.indexOf('\\documentclass');
   if (docStart > 0) {
@@ -146,6 +155,53 @@ export const validateLatex = (content: string): { valid: boolean; error?: string
   
   if (!content.includes('\\begin{document}') || !content.includes('\\end{document}')) {
     return { valid: false, error: 'Missing \\begin{document} or \\end{document}' };
+  }
+
+  // ── Check for XeLaTeX-only packages that will crash pdflatex ────────────
+  const xelatexPackages = ['fontspec', 'fontawesome', 'fontawesome5', 'minted', 'polyglossia', 'unicode-math'];
+  for (const pkg of xelatexPackages) {
+    const re = new RegExp(`\\\\usepackage(?:\\[[^\\]]*\\])?\\{${pkg}\\}`);
+    if (re.test(content)) {
+      return { valid: false, error: `Package '${pkg}' is XeLaTeX-only or unavailable on pdflatex. Remove it.` };
+    }
+  }
+
+  // ── Check for XeLaTeX-only font commands ─────────────────────────────────
+  if (/\\setmainfont\s*(?:\[[^\]]*\])?\s*\{/.test(content)) {
+    return { valid: false, error: '\\setmainfont is a XeLaTeX command — remove it for pdflatex.' };
+  }
+
+  // ── Check \href usage requires hyperref ──────────────────────────────────
+  const preambleEnd = content.indexOf('\\begin{document}');
+  const preamble = preambleEnd !== -1 ? content.slice(0, preambleEnd) : '';
+  const body = preambleEnd !== -1 ? content.slice(preambleEnd) : content;
+
+  if (/\\href\s*\{/.test(body) && !/\\usepackage(?:\[[^\]]*\])?\{hyperref\}/.test(preamble)) {
+    return { valid: false, error: '\\href is used but \\usepackage{hyperref} is missing from the preamble.' };
+  }
+
+  // ── Check for mismatched \begin{env} / \end{env} ─────────────────────────
+  const beginMatches = body.match(/\\begin\{([^}]+)\}/g) || [];
+  const endMatches = body.match(/\\end\{([^}]+)\}/g) || [];
+  if (beginMatches.length !== endMatches.length) {
+    return {
+      valid: false,
+      error: `Mismatched environments: ${beginMatches.length} \\begin but ${endMatches.length} \\end found.`,
+    };
+  }
+
+  // ── Check for severely unbalanced braces (heuristic) ─────────────────────
+  let braceDepth = 0;
+  let maxDepth = 0;
+  for (const ch of content) {
+    if (ch === '{') { braceDepth++; maxDepth = Math.max(maxDepth, braceDepth); }
+    else if (ch === '}') { braceDepth--; }
+    if (braceDepth < 0) {
+      return { valid: false, error: 'Unmatched closing brace } found — check your LaTeX for missing opening braces.' };
+    }
+  }
+  if (braceDepth !== 0) {
+    return { valid: false, error: `Unmatched braces: ${braceDepth} unclosed { found — check your LaTeX for missing closing braces.` };
   }
   
   return { valid: true };
