@@ -18,12 +18,12 @@ export function ResumeCard({ resume }: ResumeCardProps) {
   const timeAgo = formatDistanceToNow(new Date(resume.created_at), { addSuffix: true })
 
   return (
-    <Card className="group hover:shadow-md transition-all duration-200 hover:border-violet-200 dark:hover:border-violet-800">
+    <Card className="group hover:shadow-md transition-all duration-200 hover:border-brand-500/20 dark:hover:border-brand-500/20">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30">
-              <FileText className="h-5 w-5 text-violet-600" />
+              <FileText className="h-5 w-5 text-brand-400" />
             </div>
             <div>
               <h3 className="font-semibold text-sm leading-tight line-clamp-1">{resume.title}</h3>
@@ -43,11 +43,11 @@ export function ResumeCard({ resume }: ResumeCardProps) {
         </div>
         {latestAnalysis && latestAnalysis.ats_score !== null && (
           <div className="mt-3 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-violet-600" />
+            <BarChart3 className="h-4 w-4 text-brand-400" />
             <div className="flex-1">
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium">ATS Score</span>
-                <span className="font-semibold text-violet-600">{latestAnalysis.ats_score}%</span>
+                <span className="font-semibold text-brand-400">{latestAnalysis.ats_score}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
                 <div

@@ -102,14 +102,14 @@ export default async function DashboardPage() {
             <p className="text-xs text-muted-foreground">most recent score</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 border-violet-200 dark:border-violet-800">
+        <Card className="border border-brand-500/20 bg-brand-500/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Cover Letters</CardTitle>
-            <FileText className="h-4 w-4 text-violet-600" />
+            <FileText className="h-4 w-4 text-brand-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCoverLetters || 0}</div>
-            <Button size="sm" asChild className="mt-2 w-full bg-gradient-to-r from-violet-600 to-indigo-600">
+            <Button size="sm" asChild className="mt-2 w-full bg-brand-600 hover:bg-brand-500">
               <Link href="/dashboard/cover-letters">
                 Generate New
               </Link>
@@ -137,7 +137,7 @@ export default async function DashboardPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 No resumes uploaded yet. Upload your first resume to get started.
               </p>
-              <Button asChild className="bg-gradient-to-r from-violet-600 to-indigo-600">
+              <Button asChild className="bg-brand-600 hover:bg-brand-500">
                 <Link href="/resumes/new">
                   <Upload className="mr-2 h-4 w-4" />
                   Upload Your First Resume
@@ -152,8 +152,8 @@ export default async function DashboardPage() {
                   className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
                 >
                   <Link href={`/resumes/${resume.id}`} className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
-                      <FileText className="h-5 w-5 text-violet-600" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 border border-brand-500/20">
+                      <FileText className="h-5 w-5 text-brand-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{resume.title}</p>

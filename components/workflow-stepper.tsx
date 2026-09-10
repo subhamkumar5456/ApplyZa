@@ -34,7 +34,7 @@ export function WorkflowStepper({ currentStep, resumeId }: WorkflowStepperProps)
         
         {/* Active progress line */}
         <div 
-          className="absolute top-1/2 left-0 h-[2px] bg-violet-600 transition-all duration-500 ease-in-out -z-10 -translate-y-1/2" 
+          className="absolute top-1/2 left-0 h-[2px] bg-brand-600 transition-all duration-500 ease-in-out -z-10 -translate-y-1/2" 
           style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }}
         />
 
@@ -62,9 +62,9 @@ export function WorkflowStepper({ currentStep, resumeId }: WorkflowStepperProps)
                 className={cn(
                   "relative flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors",
                   isCompleted 
-                    ? "border-violet-600 bg-violet-600 text-white cursor-pointer hover:bg-violet-700" 
+                    ? "border-brand-500/20 bg-brand-600 text-white cursor-pointer hover:bg-brand-700" 
                     : isCurrent 
-                    ? "border-violet-500 bg-slate-950 text-violet-400" 
+                    ? "border-brand-500/20 bg-slate-950 text-brand-400" 
                     : "border-slate-800 bg-slate-950 text-slate-600"
                 )}
               >
@@ -77,7 +77,7 @@ export function WorkflowStepper({ currentStep, resumeId }: WorkflowStepperProps)
               <span 
                 className={cn(
                   "text-xs font-medium",
-                  isCurrent ? "text-violet-400" : isCompleted ? "text-slate-300" : "text-slate-600"
+                  isCurrent ? "text-brand-400" : isCompleted ? "text-slate-300" : "text-slate-600"
                 )}
               >
                 {step.label}

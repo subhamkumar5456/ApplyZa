@@ -48,7 +48,7 @@ export default async function ResumesPage() {
             Manage and analyze your uploaded resumes
           </p>
         </div>
-        <Button asChild className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+        <Button asChild className="bg-brand-600 hover:bg-brand-500 text-white font-semibold">
           <Link href="/resumes/new">
             <Plus className="mr-2 h-4 w-4" />
             Upload New

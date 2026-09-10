@@ -15,16 +15,16 @@ export function ModificationsList({ modifications, className }: ModificationsLis
   if (!modifications || modifications.length === 0) return null
 
   return (
-    <div className={cn('rounded-lg border border-violet-500/20 bg-violet-950/20', className)}>
+    <div className={cn('rounded-lg border border-brand-500/20 bg-brand-900/10', className)}>
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-violet-500/5"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-brand-500/5"
       >
-        <Sparkles className="h-4 w-4 flex-shrink-0 text-violet-400" />
-        <span className="flex-1 text-sm font-medium text-violet-300">
+        <Sparkles className="h-4 w-4 flex-shrink-0 text-brand-400" />
+        <span className="flex-1 text-sm font-medium text-brand-300">
           AI Modifications
         </span>
-        <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-xs font-semibold text-violet-400">
+        <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-xs font-semibold text-brand-400">
           {modifications.length}
         </span>
         {isOpen ? (
@@ -35,7 +35,7 @@ export function ModificationsList({ modifications, className }: ModificationsLis
       </button>
 
       {isOpen && (
-        <div className="border-t border-violet-500/10 px-4 pb-4 pt-3">
+        <div className="border-t border-brand-500/20/10 px-4 pb-4 pt-3">
           <ul className="space-y-2">
             {modifications.map((mod, i) => (
               <li

@@ -41,7 +41,7 @@ export function ATSScoreCard({ score }: ATSScoreCardProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-violet-600" />
+          <BarChart3 className="h-5 w-5 text-brand-400" />
           ATS Compatibility Score
         </CardTitle>
       </CardHeader>

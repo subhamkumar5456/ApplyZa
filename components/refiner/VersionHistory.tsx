@@ -68,7 +68,7 @@ export function VersionHistory({
                 className={cn(
                   'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all',
                   isCurrent
-                    ? 'bg-violet-600/20 ring-1 ring-violet-500/50'
+                    ? 'bg-brand-600/20 ring-1 ring-violet-500/50'
                     : 'hover:bg-slate-800/60',
                 )}
               >

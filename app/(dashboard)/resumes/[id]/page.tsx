@@ -69,7 +69,7 @@ export default async function ResumeDetailPage({ params }: ResumeDetailPageProps
               Edit
             </Link>
           </Button>
-          <Button asChild className="bg-gradient-to-r from-violet-600 to-indigo-600">
+          <Button asChild className="bg-brand-600 hover:bg-brand-500 text-white font-semibold">
             <Link href={`/resumes/${params.id}/analyze`}>
               <BarChart3 className="mr-2 h-4 w-4" />
               Analyze
@@ -86,7 +86,7 @@ export default async function ResumeDetailPage({ params }: ResumeDetailPageProps
             {resume.status === 'parsing' ? (
               <>
                 <div className="flex justify-center mb-4">
-                  <div className="h-8 w-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                  <div className="h-8 w-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Your resume is being parsed. This usually takes 15-30 seconds.

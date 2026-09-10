@@ -56,7 +56,7 @@ export default async function CoverLettersPage() {
           </CardHeader>
           <CardContent className="text-center pb-12">
             <Link href="/dashboard/resumes">
-              <Button size="lg" className="bg-violet-600 hover:bg-violet-700">
+              <Button size="lg" className="bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-md shadow-brand-600/20 transition-all">
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Resume
               </Button>

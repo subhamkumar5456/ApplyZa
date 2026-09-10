@@ -125,7 +125,7 @@ export default function EditResumePage() {
             <Button
               onClick={handleSave}
               disabled={isSaving || !title.trim()}
-              className="bg-gradient-to-r from-violet-600 to-indigo-600"
+              className="bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-md shadow-brand-600/20 transition-all"
             >
               {isSaving ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>

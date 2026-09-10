@@ -150,7 +150,7 @@ export default function AnalyzePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-violet-600" />
+              <Sparkles className="h-5 w-5 text-brand-400" />
               Job Description
             </CardTitle>
             <CardDescription>
@@ -194,13 +194,13 @@ export default function AnalyzePage() {
             <Button
               onClick={handleAnalyze}
               disabled={analysisStatus !== 'idle' || !jobTitle || !companyName || !jobDescription}
-              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+              className="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/20 transition-all"
               size="lg"
             >
               {analysisStatus !== 'idle' ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
               ) : (
-                <><Sparkles className="mr-2 h-4 w-4" /> Analyze Match</>
+                <><Sparkles className="mr-2 h-4 w-4 text-white/80" /> Analyze Match</>
               )}
             </Button>
           </CardContent>
@@ -355,8 +355,8 @@ export default function AnalyzePage() {
                   }}
                   className="w-full flex items-center gap-4 rounded-lg border p-3 transition-colors hover:bg-muted/50 text-left"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/30">
-                    <span className="text-sm font-bold text-violet-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10 border border-brand-500/20">
+                    <span className="text-sm font-bold text-brand-400">
                       {analysis.ats_score || '?'}
                     </span>
                   </div>

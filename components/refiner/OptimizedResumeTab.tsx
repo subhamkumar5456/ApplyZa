@@ -266,7 +266,7 @@ export function OptimizedResumeTab({
             'gap-2 font-semibold',
             refinerStatus === 'complete'
               ? 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-              : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-900/30',
+              : 'bg-gradient-to-r brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-900/30',
           )}
         >
           {refinerStatus === 'refining' ? (
@@ -330,7 +330,7 @@ export function OptimizedResumeTab({
               onClick={handleCompile}
               disabled={compileState === 'compiling'}
               size="sm"
-              className="gap-2 bg-violet-600 hover:bg-violet-500 text-white"
+              className="gap-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold"
             >
               {compileState === 'compiling' ? (
                 <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Compiling…</>

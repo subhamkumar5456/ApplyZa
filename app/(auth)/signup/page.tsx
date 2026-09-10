@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/lib/hooks/use-toast'
-import { Loader2, Sparkles } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -63,16 +63,10 @@ export default function SignupPage() {
   }
 
   return (
-    <Card className="border-0 shadow-none lg:border lg:shadow-sm">
-      <CardHeader className="space-y-1">
-        <div className="flex items-center gap-2 lg:hidden mb-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-xl font-bold gradient-text">Applyza</span>
-        </div>
-        <CardTitle className="text-2xl">Create an account</CardTitle>
-        <CardDescription>
+    <Card className="border border-white/8 bg-white/[0.03] shadow-2xl backdrop-blur-sm">
+      <CardHeader className="space-y-1 pb-5">
+        <CardTitle className="text-2xl font-bold text-white">Create an account</CardTitle>
+        <CardDescription className="text-white/45">
           Get started with AI-powered resume optimization
         </CardDescription>
       </CardHeader>
@@ -116,10 +110,10 @@ export default function SignupPage() {
             <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 pt-2">
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+            className="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/25 transition-all duration-200"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -131,9 +125,9 @@ export default function SignupPage() {
               'Create Account'
             )}
           </Button>
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm text-white/40 text-center">
             Already have an account?{' '}
-            <Link href="/login" className="text-violet-600 hover:underline font-medium">
+            <Link href="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
               Sign in
             </Link>
           </p>

@@ -4,48 +4,60 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    /* ── Dark theme base — matches landing page (#080C14) ── */
+    --background: 222 47% 5%;          /* #080C14 deep navy */
+    --foreground: 210 40% 96%;         /* near-white text */
+
+    --card: 220 40% 8%;                /* slightly lighter surface */
+    --card-foreground: 210 40% 96%;
+
+    --popover: 220 40% 8%;
+    --popover-foreground: 210 40% 96%;
+
+    /* Brand blue as primary */
+    --primary: 217 91% 60%;            /* brand-400 / #60a5fa */
+    --primary-foreground: 222 47% 5%;
+
+    --secondary: 220 30% 12%;          /* subtle surface */
+    --secondary-foreground: 210 40% 80%;
+
+    --muted: 220 30% 12%;
+    --muted-foreground: 215 20% 50%;   /* subdued text */
+
+    --accent: 220 30% 14%;
+    --accent-foreground: 210 40% 90%;
+
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262.1 83.3% 57.8%;
-    --radius: 0.5rem;
+
+    --border: 220 28% 14%;             /* subtle border */
+    --input: 220 28% 14%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
   }
 
+  /* Keep a .dark class identical so any explicit dark: variants still work */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 263.4 70% 50.4%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 222 47% 5%;
+    --foreground: 210 40% 96%;
+    --card: 220 40% 8%;
+    --card-foreground: 210 40% 96%;
+    --popover: 220 40% 8%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 5%;
+    --secondary: 220 30% 12%;
+    --secondary-foreground: 210 40% 80%;
+    --muted: 220 30% 12%;
+    --muted-foreground: 215 20% 50%;
+    --accent: 220 30% 14%;
+    --accent-foreground: 210 40% 90%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 263.4 70% 50.4%;
+    --border: 220 28% 14%;
+    --input: 220 28% 14%;
+    --ring: 217 91% 60%;
   }
 }
 
@@ -53,18 +65,32 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+  }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer utilities {
   .gradient-text {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-brand-400 to-cyan-400 bg-clip-text text-transparent;
   }
 
   .glass {
-    @apply bg-white/80 backdrop-blur-xl dark:bg-gray-950/80;
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+
+  /* Subtle grid pattern helper */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
 }

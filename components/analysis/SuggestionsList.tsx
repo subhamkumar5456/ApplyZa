@@ -45,7 +45,7 @@ export function SuggestionsList({ suggestions }: SuggestionsListProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-violet-600" />
+          <Lightbulb className="h-5 w-5 text-brand-400" />
           Improvement Suggestions
           <Badge variant="secondary" className="ml-auto">
             {suggestions.length} suggestions

@@ -51,13 +51,13 @@ export function ResumeViewer({ data }: ResumeViewerProps) {
                   </span>
                 )}
                 {data.contact.linkedin && (
-                  <a href={data.contact.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-violet-600 hover:underline">
+                  <a href={data.contact.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-brand-400 hover:underline">
                     <Linkedin className="h-3 w-3" />
                     LinkedIn
                   </a>
                 )}
                 {data.contact.website && (
-                  <a href={data.contact.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-violet-600 hover:underline">
+                  <a href={data.contact.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-brand-400 hover:underline">
                     <ExternalLink className="h-3 w-3" />
                     Website
                   </a>
@@ -175,7 +175,7 @@ export function ResumeViewer({ data }: ResumeViewerProps) {
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-semibold">{proj.name}</h4>
                     {proj.url && (
-                      <a href={proj.url} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline text-sm">
+                      <a href={proj.url} target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline text-sm">
                         View →
                       </a>
                     )}

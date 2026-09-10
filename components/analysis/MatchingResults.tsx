@@ -21,7 +21,7 @@ export function MatchingResults({ skills, matchedSkills, missingKeywords }: Matc
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Target className="h-5 w-5 text-violet-600" />
+            <Target className="h-5 w-5 text-brand-400" />
             Skills Match
             <Badge variant="secondary" className="ml-auto">
               {foundSkills.length}/{skills.length} matched

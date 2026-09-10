@@ -100,7 +100,7 @@ export default function SettingsPage() {
       <Card className="max-w-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-violet-600" />
+            <User className="h-5 w-5 text-brand-400" />
             Profile
           </CardTitle>
           <CardDescription>Update your personal information</CardDescription>
@@ -129,7 +129,7 @@ export default function SettingsPage() {
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-gradient-to-r from-violet-600 to-indigo-600"
+            className="bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-md shadow-brand-600/20 transition-all"
           >
             {isSaving ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>

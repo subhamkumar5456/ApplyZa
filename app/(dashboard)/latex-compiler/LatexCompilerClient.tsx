@@ -123,7 +123,7 @@ export default function LatexCompilerClient() {
           <Button 
             onClick={handleCompile} 
             disabled={compileState === 'compiling'}
-            className="bg-violet-600 hover:bg-violet-500 text-white gap-2"
+            className="bg-brand-600 hover:bg-brand-500 text-white gap-2 font-semibold shadow-md shadow-brand-600/20 transition-all"
           >
             {compileState === 'compiling' ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Compiling...</>

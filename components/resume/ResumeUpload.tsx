@@ -130,7 +130,7 @@ export function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Upload className="h-5 w-5 text-violet-600" />
+          <Upload className="h-5 w-5 text-brand-400" />
           Upload Resume
         </CardTitle>
         <CardDescription>
@@ -154,8 +154,8 @@ export function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
             className={cn(
               'relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 transition-colors cursor-pointer',
               isDragging
-                ? 'border-violet-500 bg-violet-50 dark:bg-violet-950/20'
-                : 'border-muted-foreground/25 hover:border-violet-400 hover:bg-muted/50'
+                ? 'border-brand-500/20 bg-violet-50 dark:bg-violet-950/20'
+                : 'border-muted-foreground/25 hover:border-brand-500/20 hover:bg-muted/50'
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -179,8 +179,8 @@ export function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
           </div>
         ) : (
           <div className="flex items-center gap-4 rounded-lg border bg-muted/50 p-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
-              <FileText className="h-6 w-6 text-violet-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-500/10 dark:bg-brand-900/30">
+              <FileText className="h-6 w-6 text-brand-400" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{file.name}</p>
@@ -202,7 +202,7 @@ export function ResumeUpload({ onUploadComplete }: ResumeUploadProps) {
         <Button
           onClick={handleUpload}
           disabled={!file || !title || isUploading}
-          className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+          className="w-full bg-gradient-to-r brand-600 hover:bg-brand-500"
           size="lg"
         >
           {isUploading ? (
