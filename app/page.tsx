@@ -21,7 +21,20 @@ import {
   PenLine,
   Download,
   RefreshCw,
+  LayoutDashboard,
+  Settings,
+  LogOut,
+  ChevronDown,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 // ─── Animation Variants ──────────────────────────────────────────────────────
 const fadeUp: Variants = {
@@ -122,6 +135,42 @@ export default function HomePage() {
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+      } catch (err) {
+        console.error('Failed to get auth session:', err);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoadingUser(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const initial = (displayName.charAt(0) || 'U').toUpperCase();
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080C14] text-white font-sans overflow-x-hidden selection:bg-brand-500/50">
       
@@ -158,14 +207,91 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild className="hidden sm:flex text-white/60 hover:text-white hover:bg-white/5 font-medium">
-              <Link href="/login">Sign In</Link>
-            </Button>
-            <Button asChild className="bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/25 hover:shadow-brand-500/40 transition-all duration-200 rounded-lg">
-              <Link href="/signup" className="flex items-center gap-1.5">
-                Get Started Free <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            {loadingUser ? (
+              <div className="h-9 w-28 rounded-lg bg-white/5 animate-pulse" />
+            ) : user ? (
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <Button asChild className="bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/25 hover:shadow-brand-500/40 transition-all duration-200 rounded-lg text-sm h-9 px-3.5 sm:px-4">
+                  <Link href="/dashboard" className="flex items-center gap-1.5">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200 outline-none focus:ring-2 focus:ring-brand-500/50"
+                      aria-label="User menu"
+                    >
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={displayName}
+                          className="h-7 w-7 rounded-full object-cover border border-white/15"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white font-bold text-xs shadow-sm">
+                          {initial}
+                        </div>
+                      )}
+                      <span className="text-xs font-medium text-white/80 max-w-[90px] truncate hidden sm:inline">
+                        {displayName}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 text-white/40" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56 bg-[#0c121e]/95 border border-white/10 text-white shadow-2xl p-1.5 rounded-xl backdrop-blur-xl"
+                  >
+                    <div className="px-2.5 py-2">
+                      <p className="text-xs font-semibold text-white truncate">{displayName}</p>
+                      <p className="text-[11px] text-white/45 truncate mt-0.5">{user.email}</p>
+                    </div>
+                    <DropdownMenuSeparator className="bg-white/10 my-1" />
+                    <DropdownMenuItem asChild className="hover:bg-white/10 focus:bg-white/10 rounded-lg cursor-pointer text-white/85 focus:text-white transition-colors">
+                      <Link href="/dashboard" className="flex items-center gap-2.5 px-2.5 py-2 text-xs">
+                        <LayoutDashboard className="h-4 w-4 text-brand-400" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="hover:bg-white/10 focus:bg-white/10 rounded-lg cursor-pointer text-white/85 focus:text-white transition-colors">
+                      <Link href="/resumes" className="flex items-center gap-2.5 px-2.5 py-2 text-xs">
+                        <FileText className="h-4 w-4 text-cyan-400" />
+                        <span>My Resumes</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="hover:bg-white/10 focus:bg-white/10 rounded-lg cursor-pointer text-white/85 focus:text-white transition-colors">
+                      <Link href="/settings" className="flex items-center gap-2.5 px-2.5 py-2 text-xs">
+                        <Settings className="h-4 w-4 text-white/50" />
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10 my-1" />
+                    <DropdownMenuItem
+                      onClick={handleSignOut}
+                      className="hover:bg-red-500/15 focus:bg-red-500/20 text-red-400 focus:text-red-300 rounded-lg cursor-pointer flex items-center gap-2.5 px-2.5 py-2 text-xs transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Sign Out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ) : (
+              <>
+                <Button variant="ghost" asChild className="hidden sm:flex text-white/60 hover:text-white hover:bg-white/5 font-medium">
+                  <Link href="/login">Sign In</Link>
+                </Button>
+                <Button asChild className="bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-600/25 hover:shadow-brand-500/40 transition-all duration-200 rounded-lg">
+                  <Link href="/signup" className="flex items-center gap-1.5">
+                    Get Started Free <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -210,15 +336,31 @@ export default function HomePage() {
                 </motion.p>
 
                 <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <Button size="lg" asChild className="h-13 px-8 bg-brand-600 hover:bg-brand-500 text-white font-bold text-base shadow-xl shadow-brand-600/30 hover:shadow-brand-500/40 transition-all duration-300 rounded-xl w-full sm:w-auto">
-                    <Link href="/signup" className="flex items-center gap-2">
-                      Optimize My Resume Free
-                      <ArrowRight className="h-5 w-5" />
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="lg" asChild className="h-13 px-6 text-white/60 hover:text-white hover:bg-white/5 font-medium rounded-xl w-full sm:w-auto border border-white/10">
-                    <Link href="/login">Already have an account?</Link>
-                  </Button>
+                  {user ? (
+                    <>
+                      <Button size="lg" asChild className="h-13 px-8 bg-brand-600 hover:bg-brand-500 text-white font-bold text-base shadow-xl shadow-brand-600/30 hover:shadow-brand-500/40 transition-all duration-300 rounded-xl w-full sm:w-auto">
+                        <Link href="/dashboard" className="flex items-center gap-2">
+                          Go to Dashboard
+                          <ArrowRight className="h-5 w-5" />
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="lg" asChild className="h-13 px-6 text-white/60 hover:text-white hover:bg-white/5 font-medium rounded-xl w-full sm:w-auto border border-white/10">
+                        <Link href="/resumes">View My Resumes</Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="lg" asChild className="h-13 px-8 bg-brand-600 hover:bg-brand-500 text-white font-bold text-base shadow-xl shadow-brand-600/30 hover:shadow-brand-500/40 transition-all duration-300 rounded-xl w-full sm:w-auto">
+                        <Link href="/signup" className="flex items-center gap-2">
+                          Optimize My Resume Free
+                          <ArrowRight className="h-5 w-5" />
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="lg" asChild className="h-13 px-6 text-white/60 hover:text-white hover:bg-white/5 font-medium rounded-xl w-full sm:w-auto border border-white/10">
+                        <Link href="/login">Already have an account?</Link>
+                      </Button>
+                    </>
+                  )}
                 </motion.div>
 
                 {/* Trust badge — only real, verifiable claims */}
@@ -572,15 +714,31 @@ export default function HomePage() {
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-                <Button size="lg" asChild className="h-14 px-10 bg-brand-600 hover:bg-brand-500 text-white font-bold text-base shadow-2xl shadow-brand-600/30 hover:shadow-brand-500/40 transition-all duration-300 rounded-xl">
-                  <Link href="/signup" className="flex items-center gap-2">
-                    Get Started Free
-                    <ArrowRight className="h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="lg" asChild className="h-14 px-8 text-white/60 hover:text-white hover:bg-white/5 font-medium rounded-xl border border-white/10">
-                  <Link href="/login">Sign In</Link>
-                </Button>
+                {user ? (
+                  <>
+                    <Button size="lg" asChild className="h-14 px-10 bg-brand-600 hover:bg-brand-500 text-white font-bold text-base shadow-2xl shadow-brand-600/30 hover:shadow-brand-500/40 transition-all duration-300 rounded-xl">
+                      <Link href="/dashboard" className="flex items-center gap-2">
+                        Open Dashboard
+                        <ArrowRight className="h-5 w-5" />
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="lg" asChild className="h-14 px-8 text-white/60 hover:text-white hover:bg-white/5 font-medium rounded-xl border border-white/10">
+                      <Link href="/resumes">My Resumes</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="lg" asChild className="h-14 px-10 bg-brand-600 hover:bg-brand-500 text-white font-bold text-base shadow-2xl shadow-brand-600/30 hover:shadow-brand-500/40 transition-all duration-300 rounded-xl">
+                      <Link href="/signup" className="flex items-center gap-2">
+                        Get Started Free
+                        <ArrowRight className="h-5 w-5" />
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="lg" asChild className="h-14 px-8 text-white/60 hover:text-white hover:bg-white/5 font-medium rounded-xl border border-white/10">
+                      <Link href="/login">Sign In</Link>
+                    </Button>
+                  </>
+                )}
               </motion.div>
 
               <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-6 text-sm text-white/35">
@@ -623,8 +781,18 @@ export default function HomePage() {
             <div>
               <h4 className="text-sm font-semibold text-white mb-4">Account</h4>
               <ul className="space-y-3 text-sm text-white/40">
-                <li><Link href="/signup" className="hover:text-white transition-colors">Sign Up Free</Link></li>
-                <li><Link href="/login" className="hover:text-white transition-colors">Sign In</Link></li>
+                {user ? (
+                  <>
+                    <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
+                    <li><Link href="/resumes" className="hover:text-white transition-colors">My Resumes</Link></li>
+                    <li><button onClick={handleSignOut} className="hover:text-red-400 transition-colors text-left">Sign Out</button></li>
+                  </>
+                ) : (
+                  <>
+                    <li><Link href="/signup" className="hover:text-white transition-colors">Sign Up Free</Link></li>
+                    <li><Link href="/login" className="hover:text-white transition-colors">Sign In</Link></li>
+                  </>
+                )}
               </ul>
             </div>
 
